@@ -1,0 +1,217 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { VersionsPanel } from '../../components/VersionsPanel';
+import { DeleteAssetButton } from '../../components/DeleteAssetButton';
+import { EditAssetButton } from '../../components/EditAssetButton';
+import { LicenseKeyDisplay } from '../../components/LicenseKeyDisplay';
+import { getSessionFromContext } from '../../lib/session';
+import { db } from '../../db';
+import { products, productVersions, fileThumbnails, marketplaceSources, creators } from '../../db/schema';
+import { eq, inArray } from 'drizzle-orm';
+
+const session = await getSessionFromContext(Astro);
+if (!session?.user) {
+  return Astro.redirect('/login');
+}
+
+const productId = Astro.params.id;
+if (!productId) {
+  return Astro.redirect('/dashboard');
+}
+
+const product = await db.query.products.findFirst({
+  where: eq(products.id, productId),
+});
+
+if (!product || product.ownerUserId !== session.user.id) {
+  return Astro.redirect('/dashboard');
+}
+
+const versions = await db.query.productVersions.findMany({
+  where: eq(productVersions.productId, productId),
+  orderBy: [productVersions.createdAt],
+});
+
+const versionIds = versions.map((v) => v.id);
+const files = versionIds.length > 0
+  ? await db.query.userAssetFiles.findMany({
+      where: (table) => inArray(table.productVersionId, versionIds),
+    })
+  : [];
+
+const blobIds = files.map((f) => f.blobId);
+const blobs = blobIds.length > 0
+  ? await db.query.globalFileBlobs.findMany({
+      where: (table) => inArray(table.id, blobIds),
+    })
+  : [];
+const blobMap = Object.fromEntries(blobs.map((b) => [b.id, b]));
+
+const thumbnail = product.thumbnailFileThumbnailId
+  ? await db.query.fileThumbnails.findFirst({
+      where: eq(fileThumbnails.id, product.thumbnailFileThumbnailId),
+    })
+  : null;
+
+const thumbnailUrl = thumbnail ? `/api/thumbnail/${thumbnail.id}` : null;
+
+let marketplaceSource = null;
+if (product.marketplaceSourceId) {
+  marketplaceSource = await db.query.marketplaceSources.findFirst({
+    where: eq(marketplaceSources.id, product.marketplaceSourceId),
+  });
+}
+
+const productCreators = (product.creatorIds && product.creatorIds.length > 0)
+  ? await db.query.creators.findMany({
+      where: (table) => inArray(table.id, product.creatorIds!),
+    })
+  : [];
+
+const productLink = product.productUrl || (marketplaceSource?.baseUrl && product.externalId
+  ? `${marketplaceSource.baseUrl.replace(/\/$/, '')}/products/${product.externalId}`
+  : null);
+
+const versionsWithFiles = versions.map((v) => ({
+  id: v.id,
+  version: v.version,
+  releaseNotes: v.releaseNotes,
+  publishedAt: v.publishedAt?.toISOString() ?? null,
+  createdAt: v.createdAt.toISOString(),
+  files: files
+    .filter((f) => f.productVersionId === v.id)
+    .map((f) => blobMap[f.blobId])
+    .filter(Boolean)
+    .map((b: { id: string; fileName: string; fileSize: number; mimeType: string }) => ({
+      id: b.id,
+      fileName: b.fileName,
+      fileSize: b.fileSize,
+      mimeType: b.mimeType,
+    })),
+}));
+
+const tagsJson = product.tags || [];
+---
+
+<BaseLayout title={`${product.title} - PDAM`} isAuthenticated={true}>
+  <div class="mx-auto max-w-5xl px-6 py-12">
+    <a href="/library" class="mb-6 inline-flex items-center gap-1.5 text-sm text-zinc-400 transition-colors hover:text-white">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+      </svg>
+      Back to library
+    </a>
+
+    <div class="mb-8 grid gap-8 md:grid-cols-[280px_1fr]">
+      <div class="aspect-video overflow-hidden rounded-xl border border-white/10 bg-white/5 md:aspect-square">
+        {thumbnailUrl ? (
+          <img src={thumbnailUrl} alt={product.title} class="h-full w-full object-cover" />
+        ) : (
+          <div class="flex h-full items-center justify-center text-zinc-600">
+            <svg class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+        )}
+      </div>
+
+      <div class="min-w-0">
+<div class="flex items-start justify-between gap-4">
+          <h1 class="text-3xl font-bold text-white">{product.title}</h1>
+          <div class="flex items-center gap-2">
+            <EditAssetButton 
+              client:load 
+              assetId={productId!} 
+              assetTitle={product.title}
+              assetDescription={product.descriptionText || ''}
+              assetTags={tagsJson}
+              assetCreators={productCreators.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
+              assetLicenseKey={product.licenseKey || ''}
+              assetMarketplaceSourceId={product.marketplaceSourceId || ''}
+              assetProductUrl={product.productUrl || ''}
+              thumbnailUrl={thumbnailUrl || ''}
+            />
+            <DeleteAssetButton client:load productId={productId!} productTitle={product.title} />
+          </div>
+        </div>
+
+        {productCreators.length > 0 && (
+          <p class="mt-2 text-sm text-zinc-400">
+            by <span class="font-medium text-zinc-300">{productCreators.map((c) => c.name).join(', ')}</span>
+          </p>
+        )}
+
+        {product.tags && product.tags.length > 0 && (
+          <div class="mt-3 flex flex-wrap gap-1.5">
+            {product.tags.map((tag: string) => (
+              <span class="rounded-md bg-white/5 px-2 py-0.5 text-xs text-zinc-400">{tag}</span>
+            ))}
+          </div>
+        )}
+
+        {product.descriptionText && (
+          <p class="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-300">{product.descriptionText}</p>
+        )}
+
+        {product.licenseKey && (
+          <div class="mt-4">
+            <LicenseKeyDisplay
+              client:load
+              licenseKey={product.licenseKey}
+              showShortKey={marketplaceSource?.slug === 'jinxxy'}
+            />
+          </div>
+        )}
+
+        {marketplaceSource && (
+          <div class="mt-4 rounded-lg border border-white/10 bg-white/5 p-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs text-zinc-500">Marketplace</span>
+                <p class="text-sm font-medium text-white">{marketplaceSource.name}</p>
+                {product.productUrl && (
+                  <a
+                    href={product.productUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="mt-0.5 inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300"
+                  >
+                    View product page
+                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                )}
+              </div>
+              {!product.productUrl && productLink && (
+                <a
+                  href={productLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-colors hover:border-white/20 hover:bg-white/10 hover:text-white"
+                >
+                  View on {marketplaceSource.name}
+                  <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div class="mt-4 text-xs text-zinc-500">
+          Created {new Date(product.createdAt).toLocaleDateString()}
+        </div>
+      </div>
+    </div>
+
+    <div class="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
+      <VersionsPanel
+        client:load
+        productId={productId!}
+        initialVersions={versionsWithFiles}
+      />
+    </div>
+  </div>
+</BaseLayout>

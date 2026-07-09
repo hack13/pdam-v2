@@ -1,0 +1,93 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { getSessionFromContext } from '../../../lib/session';
+import { getUserStorage, formatBytes } from '../../../lib/storage-accounting';
+
+const session = await getSessionFromContext(Astro);
+
+if (!session?.user) {
+  return Astro.redirect('/login');
+}
+
+const { user } = session;
+const isAuthenticated = true;
+
+const userStorage = await getUserStorage(user.id);
+const logicalBytes = userStorage?.logicalBytesUsed ?? 0;
+const physicalBytes = userStorage?.physicalBytesUsed ?? 0;
+---
+
+<BaseLayout title="Storage Admin - PDAM" isAuthenticated={isAuthenticated}>
+  <div class="mx-auto max-w-7xl px-6 py-12">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-white">Storage Admin</h1>
+      <p class="mt-1 text-sm text-zinc-400">Monitor and manage your storage usage.</p>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-2">
+      <div class="rounded-xl border border-white/10 bg-white/5 p-6">
+        <p class="text-sm text-zinc-400">Logical Storage</p>
+        <p class="mt-1 text-3xl font-bold text-white">{formatBytes(logicalBytes)}</p>
+        <p class="mt-1 text-xs text-zinc-500">Total size of your files before deduplication</p>
+      </div>
+
+      <div class="rounded-xl border border-white/10 bg-white/5 p-6">
+        <p class="text-sm text-zinc-400">Physical Storage</p>
+        <p class="mt-1 text-3xl font-bold text-white">{formatBytes(physicalBytes)}</p>
+        <p class="mt-1 text-xs text-zinc-500">Actual storage consumed on disk</p>
+      </div>
+    </div>
+
+    <div class="mt-6 rounded-xl border border-white/10 bg-white/5 p-6">
+      <h2 class="mb-2 text-lg font-semibold text-white">Reconcile Storage</h2>
+      <p class="mb-4 text-sm text-zinc-400">Recalculate your storage accounting from actual file usage. Use this if storage numbers look incorrect.</p>
+      <button
+        id="reconcile-btn"
+        class="btn-primary"
+      >
+        Reconcile My Storage
+      </button>
+      <div id="reconcile-result" class="mt-4 hidden rounded-lg border border-white/10 bg-zinc-900 p-4 text-sm"></div>
+    </div>
+  </div>
+
+  <script>
+    const btn = document.getElementById('reconcile-btn') as HTMLButtonElement;
+    const result = document.getElementById('reconcile-result') as HTMLDivElement;
+
+    btn?.addEventListener('click', async () => {
+      btn.disabled = true;
+      btn.textContent = 'Reconciling...';
+      result.classList.add('hidden');
+
+      try {
+        const res = await fetch(`/api/admin/storage/reconcile`, { method: 'GET' });
+        const data = await res.json();
+
+        if (data.success) {
+          result.innerHTML = `
+            <p class="text-green-400">Reconciliation complete.</p>
+            <p class="mt-1 text-zinc-400">Logical: ${formatBytesClient(data.logicalBytesUsed)} | Physical: ${formatBytesClient(data.physicalBytesUsed)}</p>
+          `;
+        } else {
+          result.innerHTML = `<p class="text-red-400">Error: ${data.error || 'Unknown error'}</p>`;
+        }
+        result.classList.remove('hidden');
+      } catch (e) {
+        result.innerHTML = `<p class="text-red-400">Request failed.</p>`;
+        result.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Reconcile My Storage';
+      }
+    });
+
+    function formatBytesClient(bytes: number): string {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return `${Math.round((bytes / Math.pow(k, i)) * 100) / 100} ${sizes[i]}`;
+    }
+  </script>
+</BaseLayout>

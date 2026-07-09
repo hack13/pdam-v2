@@ -1,0 +1,19 @@
+/// <reference types="astro/client" />
+
+interface ImportMetaEnv {
+  readonly DATABASE_URL?: string;
+  readonly BETTER_AUTH_URL?: string;
+  readonly BETTER_AUTH_SECRET?: string;
+  readonly S3_ENDPOINT?: string;
+  readonly S3_REGION?: string;
+  readonly S3_BUCKET?: string;
+  readonly S3_ACCESS_KEY_ID?: string;
+  readonly S3_SECRET_ACCESS_KEY?: string;
+  readonly S3_FORCE_PATH_STYLE?: 'true' | 'false';
+  readonly S3_PUBLIC_URL?: string;
+  readonly UPLOADS_DIR?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}

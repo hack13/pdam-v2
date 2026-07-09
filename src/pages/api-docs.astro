@@ -1,0 +1,245 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getSessionFromContext } from '../lib/session';
+
+const session = await getSessionFromContext(Astro);
+const isAuthenticated = !!session?.user;
+---
+
+<BaseLayout title="API Reference - PDAM" isAuthenticated={isAuthenticated}>
+  <!-- Swagger UI base styles (self-hosted). Dark overrides follow after this link. -->
+  <link rel="stylesheet" href="/api/swagger-ui/swagger-ui.css" />
+
+  <div class="mx-auto max-w-7xl px-6 py-12">
+    <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div>
+        <p class="text-sm font-medium text-indigo-400">Developers</p>
+        <h1 class="mt-1 text-3xl font-bold text-white">API Reference</h1>
+        <p class="mt-2 max-w-2xl text-sm text-zinc-400">
+          Programmatic access to your PDAM library, marketplaces, and profile.
+          Authenticate with an API key and try any endpoint right here.
+        </p>
+      </div>
+      <div class="flex flex-shrink-0 items-center gap-3">
+        <a
+          href="/dashboard"
+          class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+        >
+          Get an API Key
+        </a>
+        <a
+          href="/api/openapi.json"
+          class="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-white/10"
+        >
+          openapi.json
+        </a>
+      </div>
+    </div>
+
+    <div class="mt-6 rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-4 py-3 text-sm text-indigo-200">
+      Send your key as the <code class="rounded bg-black/30 px-1.5 py-0.5">x-api-key</code>
+      header or <code class="rounded bg-black/30 px-1.5 py-0.5">Authorization: Bearer &lt;key&gt;</code>,
+      then click <strong>Authorize</strong> below to make live requests.
+    </div>
+
+    <div class="mt-8 overflow-hidden rounded-xl border border-white/10 bg-white/5">
+      <div id="swagger-ui"></div>
+    </div>
+  </div>
+
+  <script is:inline src="/api/swagger-ui/swagger-ui-bundle.js"></script>
+  <script is:inline>
+    window.addEventListener('load', function () {
+      window.ui = SwaggerUIBundle({
+        url: '/api/openapi.json',
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [SwaggerUIBundle.presets.apis],
+        layout: 'BaseLayout',
+        persistAuthorization: true,
+        defaultModelsExpandDepth: 0,
+        docExpansion: 'list',
+      });
+    });
+  </script>
+
+  <!-- Dark theme overrides for Swagger UI, matching the PDAM palette.
+       Placed inline after swagger-ui.css so the cascade favours these rules. -->
+  <style is:inline>
+    #swagger-ui {
+      --pdam-bg: transparent;
+      --pdam-panel: rgba(255, 255, 255, 0.03);
+      --pdam-border: rgba(255, 255, 255, 0.1);
+      --pdam-text: #e4e4e7;
+      --pdam-muted: #a1a1aa;
+      --pdam-accent: #818cf8;
+    }
+    #swagger-ui,
+    #swagger-ui .swagger-ui {
+      color: var(--pdam-text);
+    }
+    /* Hide the built-in top bar; the page already has a header. */
+    #swagger-ui .topbar { display: none; }
+
+    /* Info block */
+    #swagger-ui .info,
+    #swagger-ui .info .title,
+    #swagger-ui .info li,
+    #swagger-ui .info p,
+    #swagger-ui .info a,
+    #swagger-ui .info table,
+    #swagger-ui .info h1,
+    #swagger-ui .info h2,
+    #swagger-ui .info h3 {
+      color: var(--pdam-text) !important;
+    }
+    #swagger-ui .info a { color: var(--pdam-accent) !important; }
+    #swagger-ui .info .title small pre { background: var(--pdam-border) !important; }
+
+    /* Scheme / authorize bar */
+    #swagger-ui .scheme-container {
+      background: transparent !important;
+      box-shadow: none !important;
+      border-bottom: 1px solid var(--pdam-border);
+      padding: 1rem 1.25rem;
+    }
+    #swagger-ui .scheme-container .schemes-title,
+    #swagger-ui label { color: var(--pdam-text) !important; }
+
+    /* Tag section headers */
+    #swagger-ui .opblock-tag {
+      color: var(--pdam-text) !important;
+      border-bottom: 1px solid var(--pdam-border);
+    }
+    #swagger-ui .opblock-tag small { color: var(--pdam-muted) !important; }
+    #swagger-ui .opblock-tag:hover { background: rgba(255, 255, 255, 0.02); }
+
+    /* Operation blocks */
+    #swagger-ui .opblock {
+      background: var(--pdam-panel) !important;
+      border: 1px solid var(--pdam-border) !important;
+      border-radius: 10px !important;
+      box-shadow: none !important;
+      margin: 0 0 12px 0;
+    }
+    #swagger-ui .opblock .opblock-summary {
+      border-color: var(--pdam-border) !important;
+    }
+    #swagger-ui .opblock .opblock-summary-path,
+    #swagger-ui .opblock .opblock-summary-path__deprecated,
+    #swagger-ui .opblock .opblock-summary-description,
+    #swagger-ui .opblock .opblock-summary-operation-id {
+      color: var(--pdam-text) !important;
+    }
+    #swagger-ui .opblock-description-wrapper p,
+    #swagger-ui .opblock-external-docs-wrapper p,
+    #swagger-ui .opblock-title_normal p,
+    #swagger-ui .opblock-section-header h4,
+    #swagger-ui .opblock-section-header > label,
+    #swagger-ui .parameter__name,
+    #swagger-ui .parameter__type,
+    #swagger-ui table thead tr td,
+    #swagger-ui table thead tr th,
+    #swagger-ui .response-col_status,
+    #swagger-ui .response-col_description,
+    #swagger-ui .responses-inner h4,
+    #swagger-ui .responses-inner h5 {
+      color: var(--pdam-text) !important;
+    }
+    #swagger-ui .parameter__in,
+    #swagger-ui .tab li,
+    #swagger-ui .opblock-section-header {
+      color: var(--pdam-muted) !important;
+    }
+    #swagger-ui .opblock-section-header {
+      background: rgba(255, 255, 255, 0.02) !important;
+      box-shadow: none !important;
+    }
+
+    /* Method accent colours (keep vivid, darken bodies) */
+    #swagger-ui .opblock.opblock-get { border-color: rgba(59, 130, 246, 0.4) !important; }
+    #swagger-ui .opblock.opblock-post { border-color: rgba(34, 197, 94, 0.4) !important; }
+    #swagger-ui .opblock.opblock-put { border-color: rgba(234, 179, 8, 0.4) !important; }
+    #swagger-ui .opblock.opblock-delete { border-color: rgba(239, 68, 68, 0.4) !important; }
+
+    /* Tables & borders */
+    #swagger-ui table tbody tr td { border-color: var(--pdam-border) !important; color: var(--pdam-text) !important; }
+    #swagger-ui .parameters-col_description input,
+    #swagger-ui select,
+    #swagger-ui input[type=text],
+    #swagger-ui input[type=email],
+    #swagger-ui input[type=password],
+    #swagger-ui textarea {
+      background: #0b0b0e !important;
+      color: var(--pdam-text) !important;
+      border: 1px solid var(--pdam-border) !important;
+    }
+    #swagger-ui select { appearance: auto; }
+
+    /* Models */
+    #swagger-ui section.models {
+      border: 1px solid var(--pdam-border) !important;
+      background: var(--pdam-panel) !important;
+    }
+    #swagger-ui section.models .model-container { background: rgba(255,255,255,0.02) !important; }
+    #swagger-ui section.models h4,
+    #swagger-ui .model-title,
+    #swagger-ui .model,
+    #swagger-ui .model .property,
+    #swagger-ui .prop-type {
+      color: var(--pdam-text) !important;
+    }
+    #swagger-ui .model-toggle:after { filter: invert(0.85); }
+
+    /* Code / highlighted blocks */
+    #swagger-ui .highlight-code,
+    #swagger-ui .microlight,
+    #swagger-ui .responses-inner pre,
+    #swagger-ui .body-param pre {
+      background: #0b0b0e !important;
+      color: #e4e4e7 !important;
+    }
+    #swagger-ui .response-col_links { color: var(--pdam-muted) !important; }
+
+    /* Buttons */
+    #swagger-ui .btn {
+      color: var(--pdam-text) !important;
+      border-color: var(--pdam-border) !important;
+      box-shadow: none !important;
+      background: rgba(255,255,255,0.04) !important;
+    }
+    #swagger-ui .btn.authorize {
+      color: #a5b4fc !important;
+      border-color: rgba(129, 140, 248, 0.5) !important;
+    }
+    #swagger-ui .btn.authorize svg { fill: #a5b4fc !important; }
+    #swagger-ui .btn.execute {
+      background: #4f46e5 !important;
+      color: #fff !important;
+      border-color: #4f46e5 !important;
+    }
+
+    /* Dialogs (Authorize modal) */
+    #swagger-ui .dialog-ux .modal-ux {
+      background: #18181b !important;
+      border: 1px solid var(--pdam-border) !important;
+    }
+    #swagger-ui .dialog-ux .modal-ux-header h3,
+    #swagger-ui .dialog-ux .modal-ux-content h4,
+    #swagger-ui .dialog-ux .modal-ux-content p,
+    #swagger-ui .dialog-ux .modal-ux-content label {
+      color: var(--pdam-text) !important;
+    }
+    #swagger-ui .dialog-ux .backdrop-ux { background: rgba(0,0,0,0.6) !important; }
+
+    /* Misc text */
+    #swagger-ui .markdown p,
+    #swagger-ui .markdown li,
+    #swagger-ui .renderedMarkdown p,
+    #swagger-ui small,
+    #swagger-ui .tab li button.tablinks {
+      color: var(--pdam-muted) !important;
+    }
+    #swagger-ui svg.arrow { fill: var(--pdam-muted) !important; }
+  </style>
+</BaseLayout>

@@ -1,0 +1,43 @@
+---
+import { SignOutButton } from './SignOutButton';
+import { getSessionFromContext } from '../lib/session';
+
+interface Props {
+  isAuthenticated: boolean;
+}
+
+const { isAuthenticated } = Astro.props;
+const session = isAuthenticated ? await getSessionFromContext(Astro) : null;
+const userName = session?.user?.name ?? '';
+---
+
+<nav class="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-zinc-950/80 backdrop-blur-xl">
+  <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+    <a href="/" class="flex items-center gap-2">
+      <div class="flex h-8 w-8 items-center justify-center rounded-lg" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+        <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+          <line x1="12" y1="22.08" x2="12" y2="12"/>
+        </svg>
+      </div>
+      <span class="text-lg font-bold text-white">PDAM</span>
+    </a>
+
+    {isAuthenticated ? (
+      <div class="hidden items-center gap-8 md:flex">
+        <a href="/library" class="text-sm text-zinc-400 transition-colors hover:text-white">Library</a>
+        <a href="/admin/storage" class="text-sm text-zinc-400 transition-colors hover:text-white">Storage Admin</a>
+        <a href="/dashboard" class="text-sm text-zinc-400 transition-colors hover:text-white">Account Dashboard</a>
+        <SignOutButton client:load userName={userName} compact={true} />
+      </div>
+    ) : (
+      <div class="hidden items-center gap-8 md:flex">
+        <a href="#features" class="text-sm text-zinc-400 transition-colors hover:text-white">Features</a>
+        <a href="#how-it-works" class="text-sm text-zinc-400 transition-colors hover:text-white">How It Works</a>
+        <a href="#pricing" class="text-sm text-zinc-400 transition-colors hover:text-white">Pricing</a>
+        <a href="/login" class="btn-primary">Sign In</a>
+      </div>
+    )}
+  </div>
+</nav>

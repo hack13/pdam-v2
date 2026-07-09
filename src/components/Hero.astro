@@ -1,0 +1,87 @@
+---
+interface Props {
+  isAuthenticated: boolean;
+}
+
+const { isAuthenticated } = Astro.props;
+---
+
+<section class="relative min-h-[calc(100vh-4rem)] overflow-hidden">
+  <div class="absolute inset-0">
+    <div class="absolute inset-0 bg-gradient-to-br from-indigo-950/50 via-zinc-950 to-zinc-950"></div>
+    <div class="absolute top-1/4 left-1/4 h-96 w-96 rounded-full bg-indigo-600/20 blur-3xl"></div>
+    <div class="absolute bottom-1/4 right-1/4 h-96 w-96 rounded-full bg-purple-600/20 blur-3xl"></div>
+  </div>
+
+  <div class="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-7xl flex-col items-center justify-center px-6 py-20 text-center">
+    <div class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-zinc-300 backdrop-blur-sm">
+      <span class="relative flex h-2 w-2">
+        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75"></span>
+        <span class="relative inline-flex h-2 w-2 rounded-full bg-indigo-500"></span>
+      </span>
+      Now in Beta
+    </div>
+
+    <h1 class="mt-8 max-w-4xl bg-gradient-to-br from-white via-white to-zinc-400 bg-clip-text text-5xl font-bold text-transparent md:text-7xl">
+      Your VR Assets,<br />
+      <span class="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+        Securely Organized
+      </span>
+    </h1>
+
+    <p class="mt-6 max-w-2xl text-lg text-zinc-400 md:text-xl">
+      Stop scattering your digital purchases across Gumroad, Jinxxy, and beyond.
+      PDAM brings all your VR assets into one secure vault with automatic backups
+      and cloud sync.
+    </p>
+
+    <div class="mt-10 flex flex-col gap-4 sm:flex-row">
+      {isAuthenticated ? (
+        <a href="/library" class="btn-primary">Go to Library</a>
+      ) : (
+        <>
+          <a href="/signup" class="btn-primary">Get Started Free</a>
+          <a href="#features" class="btn-secondary">Learn More</a>
+        </>
+      )}
+    </div>
+
+    <div class="mt-20 grid w-full max-w-5xl grid-cols-1 gap-6 md:grid-cols-3">
+      <div class="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
+        <div class="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-500/10">
+          <svg class="h-6 w-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-white">Global Deduplication</h3>
+        <p class="mt-2 text-sm text-zinc-400">
+          Upload once, reference everywhere. Save storage with intelligent file deduplication across your entire library.
+        </p>
+      </div>
+
+      <div class="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
+        <div class="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-purple-500/10">
+          <svg class="h-6 w-6 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-white">Cloud Backup</h3>
+        <p class="mt-2 text-sm text-zinc-400">
+          Automatically sync to Dropbox, Google Drive, or OneDrive. Your assets are always safe and accessible.
+        </p>
+      </div>
+
+      <div class="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
+        <div class="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-pink-500/10">
+          <svg class="h-6 w-6 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-white">Version Tracking</h3>
+        <p class="mt-2 text-sm text-zinc-400">
+          Track product versions and automatically receive updates when creators publish new releases.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>

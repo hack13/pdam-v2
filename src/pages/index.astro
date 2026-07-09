@@ -1,0 +1,12 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Hero from '../components/Hero.astro';
+import { getSessionFromContext } from '../lib/session';
+
+const session = await getSessionFromContext(Astro);
+const isAuthenticated = !!session?.user;
+---
+
+<BaseLayout title="PDAM - Personal Digital Asset Manager" isAuthenticated={isAuthenticated}>
+  <Hero isAuthenticated={isAuthenticated} />
+</BaseLayout>

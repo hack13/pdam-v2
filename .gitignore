@@ -1,0 +1,36 @@
+# Dependencies
+node_modules
+
+# Output
+dist
+.astro
+
+# Environment
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs
+
+# Drizzle
+drizzle/
+
+# Uploads
+uploads/
+
+# Test scripts
+scripts/test-*.mjs
+scripts/*-test.mjs
+scripts/verify-*.mjs
