@@ -1,6 +1,10 @@
 ---
-import { SignOutButton } from './SignOutButton';
+import { UserMenu } from './UserMenu';
 import { getSessionFromContext } from '../lib/session';
+import { db } from '../db';
+import { users } from '../db/schema';
+import { eq } from 'drizzle-orm';
+import { isAdminUser } from '../lib/admin';
 
 interface Props {
   isAuthenticated: boolean;
@@ -9,6 +13,22 @@ interface Props {
 const { isAuthenticated } = Astro.props;
 const session = isAuthenticated ? await getSessionFromContext(Astro) : null;
 const userName = session?.user?.name ?? '';
+
+let isAdmin = false;
+let userImage = '';
+if (session?.user) {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, session.user.id),
+  });
+  if (user) {
+    isAdmin = isAdminUser(user);
+    userImage = user.image ?? '';
+  }
+}
+
+const fallbackAvatarUrl = userName
+  ? `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=6366f1&color=fff`
+  : '';
 ---
 
 <nav class="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-zinc-950/80 backdrop-blur-xl">
@@ -27,9 +47,13 @@ const userName = session?.user?.name ?? '';
     {isAuthenticated ? (
       <div class="hidden items-center gap-8 md:flex">
         <a href="/library" class="text-sm text-zinc-400 transition-colors hover:text-white">Library</a>
-        <a href="/admin/storage" class="text-sm text-zinc-400 transition-colors hover:text-white">Storage Admin</a>
-        <a href="/dashboard" class="text-sm text-zinc-400 transition-colors hover:text-white">Account Dashboard</a>
-        <SignOutButton client:load userName={userName} compact={true} />
+        <UserMenu
+          client:load
+          userName={userName}
+          userImage={userImage}
+          fallbackAvatarUrl={fallbackAvatarUrl}
+          isAdmin={isAdmin}
+        />
       </div>
     ) : (
       <div class="hidden items-center gap-8 md:flex">
