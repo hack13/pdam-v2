@@ -221,6 +221,9 @@ export function AssetEditForm({
               placeholder="Describe your asset..."
               disabled={saving}
             />
+            <p className="mt-1 text-xs text-zinc-500">
+              Markdown supported: **bold**, *italic*, lists, links, and more.
+            </p>
           </div>
 
           {/* Tags */}

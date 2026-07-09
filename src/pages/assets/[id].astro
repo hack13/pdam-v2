@@ -4,6 +4,7 @@ import { VersionsPanel } from '../../components/VersionsPanel';
 import { DeleteAssetButton } from '../../components/DeleteAssetButton';
 import { EditAssetButton } from '../../components/EditAssetButton';
 import { LicenseKeyDisplay } from '../../components/LicenseKeyDisplay';
+import MarkdownContent from '../../components/MarkdownContent.astro';
 import { getSessionFromContext } from '../../lib/session';
 import { db } from '../../db';
 import { products, productVersions, fileThumbnails, marketplaceSources, creators } from '../../db/schema';
@@ -150,7 +151,7 @@ const tagsJson = product.tags || [];
         )}
 
         {product.descriptionText && (
-          <p class="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-300">{product.descriptionText}</p>
+          <MarkdownContent content={product.descriptionText} class="mt-4" />
         )}
 
         {product.licenseKey && (

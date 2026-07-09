@@ -172,6 +172,9 @@ export function AssetCreateForm() {
           placeholder="Describe your asset..."
           maxLength={10000}
         />
+        <p className="mt-1 text-xs text-zinc-600">
+          Markdown supported: **bold**, *italic*, lists, links, and more.
+        </p>
       </div>
 
       <div>
