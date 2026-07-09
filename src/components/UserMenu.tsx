@@ -82,9 +82,6 @@ export function UserMenu({ userName, userImage, fallbackAvatarUrl, isAdmin }: Pr
           <a href="/dashboard" role="menuitem" className={linkClass} onClick={() => setOpen(false)}>
             Account
           </a>
-          <a href="/admin/storage" role="menuitem" className={linkClass} onClick={() => setOpen(false)}>
-            Storage
-          </a>
           {isAdmin && (
             <a href="/admin" role="menuitem" className={linkClass} onClick={() => setOpen(false)}>
               Admin

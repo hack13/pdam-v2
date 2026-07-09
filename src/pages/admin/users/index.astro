@@ -1,0 +1,36 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import AdminNav from '../../../components/AdminNav.astro';
+import { UserManagement } from '../../../components/UserManagement';
+import { getAdminUserFromContext } from '../../../lib/admin';
+import { getAdminUserSummaries } from '../../../lib/admin-stats';
+
+const adminUser = await getAdminUserFromContext(Astro);
+
+if (!adminUser) {
+  return Astro.redirect('/dashboard');
+}
+
+const initialUsers = await getAdminUserSummaries();
+const isAuthenticated = true;
+---
+
+<BaseLayout title="User Management - PDAM" isAuthenticated={isAuthenticated}>
+  <div class="mx-auto max-w-7xl px-6 py-12">
+    <div class="mb-2">
+      <h1 class="text-3xl font-bold text-white">User Management</h1>
+      <p class="mt-1 text-sm text-zinc-400">View, edit, and delete user accounts.</p>
+    </div>
+
+    <AdminNav current="users" />
+
+    <UserManagement
+      client:load
+      currentUserId={adminUser.id}
+      initialUsers={initialUsers.map((user) => ({
+        ...user,
+        createdAt: user.createdAt.toISOString(),
+      }))}
+    />
+  </div>
+</BaseLayout>

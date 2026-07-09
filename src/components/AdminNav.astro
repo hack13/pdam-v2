@@ -1,0 +1,43 @@
+---
+interface Props {
+  current: 'dashboard' | 'users' | 'storage';
+}
+
+const { current } = Astro.props;
+---
+
+<nav class="mb-8 flex flex-wrap gap-2 border-b border-white/10 pb-4">
+  <a
+    href="/admin"
+    class:list={[
+      'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+      current === 'dashboard'
+        ? 'bg-indigo-500/20 text-indigo-300'
+        : 'text-zinc-400 hover:bg-white/5 hover:text-white',
+    ]}
+  >
+    Dashboard
+  </a>
+  <a
+    href="/admin/users"
+    class:list={[
+      'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+      current === 'users'
+        ? 'bg-indigo-500/20 text-indigo-300'
+        : 'text-zinc-400 hover:bg-white/5 hover:text-white',
+    ]}
+  >
+    User Management
+  </a>
+  <a
+    href="/admin/storage"
+    class:list={[
+      'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+      current === 'storage'
+        ? 'bg-indigo-500/20 text-indigo-300'
+        : 'text-zinc-400 hover:bg-white/5 hover:text-white',
+    ]}
+  >
+    Storage
+  </a>
+</nav>

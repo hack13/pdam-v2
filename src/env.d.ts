@@ -12,6 +12,7 @@ interface ImportMetaEnv {
   readonly S3_FORCE_PATH_STYLE?: 'true' | 'false';
   readonly S3_PUBLIC_URL?: string;
   readonly UPLOADS_DIR?: string;
+  readonly ADMIN_EMAILS?: string;
 }
 
 interface ImportMeta {

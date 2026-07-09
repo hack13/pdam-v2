@@ -20,6 +20,13 @@ export const auth = betterAuth({
   }),
   user: {
     modelName: 'user',
+    additionalFields: {
+      role: {
+        type: 'string',
+        defaultValue: 'user',
+        input: false,
+      },
+    },
   },
   emailAndPassword: {
     enabled: true,

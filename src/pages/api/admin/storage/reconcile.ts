@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getSessionFromContext } from '../../../../lib/session';
+import { requireAdmin } from '../../../../lib/admin';
 import { reconcileUserStorage, reconcileAllUsersStorage } from '../../../../lib/storage-accounting';
 
 export const GET: APIRoute = async (context) => {
@@ -12,21 +13,15 @@ export const GET: APIRoute = async (context) => {
     });
   }
 
-  // TODO: Add admin role check here
-  // For now, only allow reconciliation for the authenticated user or all users
-
   const url = new URL(context.request.url);
   const userId = url.searchParams.get('userId');
   const all = url.searchParams.get('all') === 'true';
 
   try {
     if (userId) {
-      // Reconcile specific user
       if (userId !== session.user.id) {
-        return new Response(JSON.stringify({ error: 'Forbidden' }), {
-          status: 403,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        const admin = await requireAdmin(context);
+        if (admin instanceof Response) return admin;
       }
 
       const result = await reconcileUserStorage(userId);
@@ -40,10 +35,14 @@ export const GET: APIRoute = async (context) => {
         {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
-        }
+        },
       );
-    } else if (all) {
-      // Reconcile all users (admin only - for now, require explicit flag)
+    }
+
+    if (all) {
+      const admin = await requireAdmin(context);
+      if (admin instanceof Response) return admin;
+
       const results = await reconcileAllUsersStorage();
       return new Response(
         JSON.stringify({
@@ -54,19 +53,19 @@ export const GET: APIRoute = async (context) => {
         {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    } else {
-      return new Response(
-        JSON.stringify({
-          error: 'Must specify ?userId=<id> or ?all=true',
-        }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }
+        },
       );
     }
+
+    return new Response(
+      JSON.stringify({
+        error: 'Must specify ?userId=<id> or ?all=true',
+      }),
+      {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
   } catch (error) {
     console.error('Storage reconciliation error:', error);
     return new Response(
@@ -77,7 +76,7 @@ export const GET: APIRoute = async (context) => {
       {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
-      }
+      },
     );
   }
 };

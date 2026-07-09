@@ -1,6 +1,9 @@
 import { db } from '../db';
 import { storageAccounting, userAssetFiles, blobStorageObjects } from '../db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
+import { formatBytes } from './format-bytes';
+
+export { formatBytes };
 
 export interface StorageUpdateParams {
   userId: string;
@@ -53,16 +56,6 @@ export async function getUserStorage(userId: string): Promise<{
     logicalBytesUsed: accounting.logicalBytesUsed,
     physicalBytesUsed: accounting.physicalBytesUsed,
   };
-}
-
-export function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
-
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-  return `${Math.round((bytes / Math.pow(k, i)) * 100) / 100} ${sizes[i]}`;
 }
 
 export async function reconcileUserStorage(userId: string): Promise<{

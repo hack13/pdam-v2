@@ -1,0 +1,83 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import AdminNav from '../../components/AdminNav.astro';
+import { getAdminUserFromContext } from '../../lib/admin';
+import { getAdminStats } from '../../lib/admin-stats';
+import { formatBytes } from '../../lib/storage-accounting';
+
+const adminUser = await getAdminUserFromContext(Astro);
+
+if (!adminUser) {
+  return Astro.redirect('/dashboard');
+}
+
+const stats = await getAdminStats();
+const isAuthenticated = true;
+
+const deduplicationSavings = stats.totalLogicalBytes - stats.totalPhysicalBytes;
+const savingsPercent = stats.totalLogicalBytes > 0
+  ? Math.round((deduplicationSavings / stats.totalLogicalBytes) * 100)
+  : 0;
+---
+
+<BaseLayout title="Admin Dashboard - PDAM" isAuthenticated={isAuthenticated}>
+  <div class="mx-auto max-w-7xl px-6 py-12">
+    <div class="mb-2">
+      <h1 class="text-3xl font-bold text-white">Admin Dashboard</h1>
+      <p class="mt-1 text-sm text-zinc-400">System-wide overview and management.</p>
+    </div>
+
+    <AdminNav current="dashboard" />
+
+    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div class="rounded-xl border border-white/10 bg-white/5 p-6 md:col-span-2 lg:col-span-1">
+        <p class="text-sm text-zinc-400">Storage Overview</p>
+        <div class="mt-4 space-y-3">
+          <div>
+            <div class="flex items-baseline justify-between">
+              <span class="text-xs text-zinc-500">Logical</span>
+              <span class="text-lg font-semibold text-white">{formatBytes(stats.totalLogicalBytes)}</span>
+            </div>
+            <p class="mt-0.5 text-xs text-zinc-600">Total file size before deduplication</p>
+          </div>
+          <div class="border-t border-white/5 pt-3">
+            <div class="flex items-baseline justify-between">
+              <span class="text-xs text-zinc-500">Physical</span>
+              <span class="text-lg font-semibold text-white">{formatBytes(stats.totalPhysicalBytes)}</span>
+            </div>
+            <p class="mt-0.5 text-xs text-zinc-600">Actual storage on disk</p>
+          </div>
+          {deduplicationSavings > 0 && (
+            <div class="rounded-lg bg-green-500/10 px-3 py-2 text-xs text-green-400">
+              {formatBytes(deduplicationSavings)} saved ({savingsPercent}% deduplication)
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div class="rounded-xl border border-white/10 bg-white/5 p-6">
+        <p class="text-sm text-zinc-400">Total Users</p>
+        <p class="mt-1 text-3xl font-bold text-white">{stats.totalUsers}</p>
+        <a href="/admin/users" class="mt-2 inline-block text-sm text-indigo-400 hover:text-indigo-300">Manage Users &rarr;</a>
+      </div>
+
+      <div class="rounded-xl border border-white/10 bg-white/5 p-6">
+        <p class="text-sm text-zinc-400">Total Assets</p>
+        <p class="mt-1 text-3xl font-bold text-white">{stats.totalAssets}</p>
+        <p class="mt-1 text-xs text-zinc-500">Products stored across all users</p>
+      </div>
+
+      <div class="rounded-xl border border-white/10 bg-white/5 p-6">
+        <p class="text-sm text-zinc-400">Unique Files</p>
+        <p class="mt-1 text-3xl font-bold text-white">{stats.totalUniqueFiles}</p>
+        <p class="mt-1 text-xs text-zinc-500">Content-addressed blobs in storage</p>
+      </div>
+
+      <div class="rounded-xl border border-white/10 bg-white/5 p-6">
+        <p class="text-sm text-zinc-400">Creators Documented</p>
+        <p class="mt-1 text-3xl font-bold text-white">{stats.totalCreators}</p>
+        <p class="mt-1 text-xs text-zinc-500">Authors and creators in the catalog</p>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
