@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ThumbnailPicker } from './ThumbnailPicker';
 import { MultiCreatorAutocomplete } from './MultiCreatorAutocomplete';
+import { DescriptionField } from './DescriptionField';
 
 interface MarketplaceSource {
   id: string;
@@ -208,23 +209,13 @@ export function AssetEditForm({
           </div>
 
           {/* Description */}
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-zinc-300 mb-1.5">
-              Description
-            </label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-              className="w-full rounded-lg bg-zinc-800 border border-white/10 px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-              placeholder="Describe your asset..."
-              disabled={saving}
-            />
-            <p className="mt-1 text-xs text-zinc-500">
-              Markdown supported: **bold**, *italic*, lists, links, and more.
-            </p>
-          </div>
+          <DescriptionField
+            productId={productId}
+            value={description}
+            onChange={setDescription}
+            disabled={saving}
+            textareaClassName="w-full rounded-lg bg-zinc-800 border border-white/10 px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+          />
 
           {/* Tags */}
           <div>

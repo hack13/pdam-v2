@@ -1,5 +1,6 @@
 import DOMPurify from 'isomorphic-dompurify';
 import { marked } from 'marked';
+import { DESCRIPTION_IMAGE_SRC_PATTERN } from './description-image-url';
 
 marked.setOptions({
   gfm: true,
@@ -26,13 +27,14 @@ const ALLOWED_TAGS = [
   'ol',
   'li',
   'a',
+  'img',
   'code',
   'pre',
   'blockquote',
   'hr',
 ];
 
-const ALLOWED_ATTR = ['href', 'title', 'target', 'rel'];
+const ALLOWED_ATTR = ['href', 'title', 'target', 'rel', 'src', 'alt', 'width', 'height', 'loading'];
 
 let hooksConfigured = false;
 
@@ -44,6 +46,15 @@ function configureSanitizerHooks() {
     if (node.tagName === 'A') {
       node.setAttribute('target', '_blank');
       node.setAttribute('rel', 'noopener noreferrer');
+    }
+
+    if (node.tagName === 'IMG') {
+      const src = node.getAttribute('src') ?? '';
+      if (!DESCRIPTION_IMAGE_SRC_PATTERN.test(src)) {
+        node.remove();
+        return;
+      }
+      node.setAttribute('loading', 'lazy');
     }
   });
 }

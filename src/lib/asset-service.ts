@@ -4,12 +4,12 @@ import {
   products,
   productVersions,
   userAssetFiles,
-  globalFileBlobs,
-  blobStorageObjects,
   fileThumbnails,
 } from '../db/schema';
 import { storage } from './storage';
 import { updateStorageAccounting } from './storage-accounting';
+import { cleanupUnreferencedBlobs } from './blob-cleanup';
+import { deleteAllDescriptionImagesForProduct } from './description-images';
 
 export async function deleteAsset(productId: string, ownerId: string): Promise<void> {
   const product = await db.query.products.findFirst({
@@ -66,6 +66,8 @@ export async function deleteAsset(productId: string, ownerId: string): Promise<v
     }
   }
 
+  await deleteAllDescriptionImagesForProduct(productId, ownerId);
+
   // Update storage accounting for the user
   await updateStorageAccounting({
     userId: ownerId,
@@ -74,46 +76,4 @@ export async function deleteAsset(productId: string, ownerId: string): Promise<v
   });
 
   await db.delete(products).where(eq(products.id, productId));
-}
-
-export async function cleanupUnreferencedBlobs(blobIds: string[]): Promise<number> {
-  if (blobIds.length === 0) return 0;
-
-  const stillReferenced = await db.query.userAssetFiles.findMany({
-    where: (table) => inArray(table.blobId, blobIds),
-  });
-
-  const referencedBlobIds = new Set(stillReferenced.map((f) => f.blobId));
-  const orphanedBlobIds = blobIds.filter((id) => !referencedBlobIds.has(id));
-
-  if (orphanedBlobIds.length === 0) return 0;
-
-  const storageObjs = await db.query.blobStorageObjects.findMany({
-    where: (table) => inArray(table.blobId, orphanedBlobIds),
-  });
-
-  let physicalBytesFreed = 0;
-
-  for (const obj of storageObjs) {
-    try {
-      await storage.delete(obj.storageKey);
-      if (obj.physicalSizeBytes) {
-        physicalBytesFreed += Number(obj.physicalSizeBytes);
-      }
-    } catch (err) {
-      console.error(`Failed to delete storage object ${obj.storageKey}:`, err);
-    }
-  }
-
-  if (storageObjs.length > 0) {
-    await db.delete(blobStorageObjects).where(
-      inArray(blobStorageObjects.blobId, orphanedBlobIds),
-    );
-  }
-
-  await db.delete(globalFileBlobs).where(
-    inArray(globalFileBlobs.id, orphanedBlobIds),
-  );
-
-  return physicalBytesFreed;
 }

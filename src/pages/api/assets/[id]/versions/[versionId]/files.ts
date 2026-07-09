@@ -5,7 +5,7 @@ import { products, productVersions, userAssetFiles, globalFileBlobs, blobStorage
 import { requireAuth, json, jsonError } from '../../../../../../lib/api-helpers';
 import { storeFile, getFileByBlobId } from '../../../../../../lib/file-pipeline';
 import { updateStorageAccounting } from '../../../../../../lib/storage-accounting';
-import { cleanupUnreferencedBlobs } from '../../../../../../lib/asset-service';
+import { cleanupUnreferencedBlobs } from '../../../../../../lib/blob-cleanup';
 import { storage } from '../../../../../../lib/storage';
 
 export const GET: APIRoute = async (context) => {

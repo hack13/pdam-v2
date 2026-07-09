@@ -1,6 +1,6 @@
-import { pgTable, text, timestamp, uuid, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, boolean, integer, bigint } from 'drizzle-orm/pg-core';
 import { users } from './auth';
-import { fileThumbnails } from './global-storage';
+import { fileThumbnails, globalFileBlobs } from './global-storage';
 
 export const marketplaceSources = pgTable('marketplace_sources', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -44,6 +44,16 @@ export const products = pgTable('products', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
+export const productDescriptionImages = pgTable('product_description_images', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  blobId: uuid('blob_id').notNull().references(() => globalFileBlobs.id),
+  width: integer('width').notNull(),
+  height: integer('height').notNull(),
+  logicalSizeBytes: bigint('logical_size_bytes', { mode: 'number' }).notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
 export const productVersions = pgTable('product_versions', {
   id: uuid('id').primaryKey().defaultRandom(),
   productId: uuid('product_id').notNull().references(() => products.id),
@@ -59,5 +69,7 @@ export type Creator = typeof creators.$inferSelect;
 export type NewCreator = typeof creators.$inferInsert;
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
+export type ProductDescriptionImage = typeof productDescriptionImages.$inferSelect;
+export type NewProductDescriptionImage = typeof productDescriptionImages.$inferInsert;
 export type ProductVersion = typeof productVersions.$inferSelect;
 export type NewProductVersion = typeof productVersions.$inferInsert;

@@ -68,6 +68,16 @@ export async function generateThumbnail(source: Buffer): Promise<ProcessedImage>
   return processToWebp(source, { maxWidth: THUMBNAIL_MAX_WIDTH, quality: THUMBNAIL_QUALITY });
 }
 
+const DESCRIPTION_IMAGE_MAX_WIDTH = 1600;
+const DESCRIPTION_IMAGE_QUALITY = 85;
+
+export async function processDescriptionImage(source: Buffer): Promise<ProcessedImage> {
+  return processToWebp(source, {
+    maxWidth: DESCRIPTION_IMAGE_MAX_WIDTH,
+    quality: DESCRIPTION_IMAGE_QUALITY,
+  });
+}
+
 const AVATAR_SIZE = 200;
 const AVATAR_QUALITY = 85;
 

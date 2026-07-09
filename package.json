@@ -12,6 +12,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:apply-role": "node scripts/apply-role-migration.mjs",
+    "db:apply-description-images": "node scripts/apply-description-images-migration.mjs",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

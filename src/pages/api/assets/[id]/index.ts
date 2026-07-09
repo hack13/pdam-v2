@@ -4,6 +4,7 @@ import { db } from '../../../../db';
 import { products, productVersions, globalFileBlobs, fileThumbnails, userAssetFiles, marketplaceSources, creators } from '../../../../db/schema';
 import { requireAuth, json, jsonError, slugify } from '../../../../lib/api-helpers';
 import { deleteAsset } from '../../../../lib/asset-service';
+import { reconcileDescriptionImages } from '../../../../lib/description-images';
 
 async function resolveCreatorIds(
   entries: Array<{ id?: string; name: string }>
@@ -176,7 +177,9 @@ export const PUT: APIRoute = async (context) => {
   }
 
   if (body.description !== undefined) {
-    updates.descriptionText = body.description.trim() || null;
+    const description = body.description.trim() || '';
+    updates.descriptionText = description || null;
+    await reconcileDescriptionImages(productId, description, auth.user.id);
   }
 
   if (body.tags !== undefined) {

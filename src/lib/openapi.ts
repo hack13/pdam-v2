@@ -146,7 +146,11 @@ export function buildOpenApiSpec(serverUrl: string) {
           required: ['title'],
           properties: {
             title: { type: 'string' },
-            description: { type: 'string' },
+            description: {
+              type: 'string',
+              description:
+                'Markdown description. Upload images via POST /api/assets/{id}/description-images, then embed with ![alt](/api/assets/{id}/description-images/{imageId}).',
+            },
             tags: { type: 'string', description: 'Comma-separated list of tags.' },
             licenseKey: { type: 'string' },
             marketplaceSourceId: { type: 'string', format: 'uuid' },
@@ -170,7 +174,11 @@ export function buildOpenApiSpec(serverUrl: string) {
           description: 'All fields optional; only provided fields are updated.',
           properties: {
             title: { type: 'string' },
-            description: { type: 'string' },
+            description: {
+              type: 'string',
+              description:
+                'Markdown description. Upload images via POST /api/assets/{id}/description-images, then embed with ![alt](/api/assets/{id}/description-images/{imageId}). Unreferenced images are removed when the description is saved.',
+            },
             tags: { type: 'string', description: 'Comma-separated list of tags.' },
             licenseKey: { type: 'string' },
             marketplaceSourceId: { type: 'string', format: 'uuid' },
@@ -205,6 +213,15 @@ export function buildOpenApiSpec(serverUrl: string) {
           properties: {
             version: { type: 'string', description: 'Version label, e.g. "1.0.0".' },
             releaseNotes: { type: 'string' },
+          },
+        },
+        DescriptionImage: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            url: { type: 'string' },
+            width: { type: 'integer' },
+            height: { type: 'integer' },
           },
         },
         FileUploadResult: {
@@ -616,6 +633,80 @@ export function buildOpenApiSpec(serverUrl: string) {
               },
             },
             '400': { $ref: '#/components/responses/BadRequest' },
+            '401': { $ref: '#/components/responses/Unauthorized' },
+            '404': { $ref: '#/components/responses/NotFound' },
+          },
+        },
+      },
+      '/api/assets/{id}/description-images': {
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        post: {
+          tags: ['Library'],
+          summary: 'Upload description image',
+          description:
+            'Uploads an image for use in the asset description markdown (multipart/form-data, field name `image`, image/*, max 10MB). Returns a URL to embed as ![alt](url).',
+          requestBody: {
+            required: true,
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  required: ['image'],
+                  properties: {
+                    image: { type: 'string', format: 'binary' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            '201': {
+              description: 'The uploaded description image.',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/DescriptionImage' },
+                },
+              },
+            },
+            '400': { $ref: '#/components/responses/BadRequest' },
+            '401': { $ref: '#/components/responses/Unauthorized' },
+            '404': { $ref: '#/components/responses/NotFound' },
+          },
+        },
+      },
+      '/api/assets/{id}/description-images/{imageId}': {
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+          {
+            name: 'imageId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        get: {
+          tags: ['Library'],
+          summary: 'Get description image',
+          description: 'Returns the image bytes for a description image embedded in asset markdown.',
+          responses: {
+            '200': {
+              description: 'Image bytes.',
+              content: {
+                'image/webp': { schema: { type: 'string', format: 'binary' } },
+              },
+            },
             '401': { $ref: '#/components/responses/Unauthorized' },
             '404': { $ref: '#/components/responses/NotFound' },
           },

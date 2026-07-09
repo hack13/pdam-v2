@@ -107,4 +107,8 @@
   .markdown-content strong {
     @apply font-semibold text-zinc-200;
   }
+
+  .markdown-content img {
+    @apply my-4 max-w-full rounded-lg border border-white/10;
+  }
 }
