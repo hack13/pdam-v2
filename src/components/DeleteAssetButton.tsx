@@ -11,6 +11,8 @@ export function DeleteAssetButton({ assetId, assetTitle }: Props) {
   const [loading, setLoading] = useState(false);
 
   async function handleConfirm() {
+    if (!assetId) return;
+
     setLoading(true);
     try {
       const res = await fetch(`/api/assets/${assetId}`, { method: 'DELETE' });

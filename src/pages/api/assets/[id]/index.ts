@@ -116,7 +116,7 @@ export const DELETE: APIRoute = async (context) => {
   if (auth instanceof Response) return auth;
 
   const productId = context.params.id;
-  if (!productId) return jsonError('Asset ID required');
+  if (!productId || productId === 'undefined') return jsonError('Asset ID required');
 
   const product = await db.query.products.findFirst({
     where: eq(products.id, productId),
@@ -127,7 +127,7 @@ export const DELETE: APIRoute = async (context) => {
   }
 
   try {
-    await deleteAsset(productId, auth.user.id);
+    await deleteAsset(product.id, auth.user.id);
     return json({ success: true });
   } catch (err) {
     console.error('Failed to delete asset:', err);

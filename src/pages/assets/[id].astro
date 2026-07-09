@@ -131,7 +131,7 @@ const tagsJson = product.tags || [];
               assetProductUrl={product.productUrl || ''}
               thumbnailUrl={thumbnailUrl || ''}
             />
-            <DeleteAssetButton client:load productId={productId!} productTitle={product.title} />
+            <DeleteAssetButton client:load assetId={productId!} assetTitle={product.title} />
           </div>
         </div>
 
