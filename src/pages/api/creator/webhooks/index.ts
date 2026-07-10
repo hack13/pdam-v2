@@ -4,6 +4,7 @@ import { db } from '../../../../db';
 import { creatorVerificationWebhooks, marketplaceSources } from '../../../../db/schema';
 import { requireCreator } from '../../../../lib/creator';
 import { generateWebhookSecret, validateWebhookEndpoint } from '../../../../lib/verification-webhook';
+import { encryptWebhookSecret } from '../../../../lib/webhook-secrets';
 import { json, jsonError } from '../../../../lib/api-helpers';
 
 function serializeWebhook(row: typeof creatorVerificationWebhooks.$inferSelect) {
@@ -11,7 +12,6 @@ function serializeWebhook(row: typeof creatorVerificationWebhooks.$inferSelect) 
     id: row.id,
     marketplaceSourceId: row.marketplaceSourceId,
     endpointUrl: row.endpointUrl,
-    secret: row.secret,
     isActive: row.isActive,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -68,10 +68,10 @@ export const POST: APIRoute = async (context) => {
       userId: auth.user.id,
       endpointUrl: endpointUrl.toString(),
       marketplaceSourceId: body.marketplaceSourceId || null,
-      secret,
+      secret: encryptWebhookSecret(secret),
       isActive: true,
     })
     .returning();
 
-  return json(serializeWebhook(row), 201);
+  return json({ ...serializeWebhook(row), secret }, 201);
 };

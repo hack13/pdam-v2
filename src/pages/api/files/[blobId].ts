@@ -4,6 +4,7 @@ import { db } from '../../../db';
 import { userAssetFiles, globalFileBlobs } from '../../../db/schema';
 import { requireAuth } from '../../../lib/api-helpers';
 import { getFileByBlobId } from '../../../lib/file-pipeline';
+import { contentDispositionForDownload } from '../../../lib/download-headers';
 
 export const GET: APIRoute = async (context) => {
   const auth = await requireAuth(context);
@@ -56,7 +57,7 @@ export const GET: APIRoute = async (context) => {
     headers: {
       'Content-Type': file.mimeType,
       'Content-Length': String(file.data.length),
-      'Content-Disposition': `attachment; filename="${file.fileName}"`,
+      'Content-Disposition': contentDispositionForDownload(file.fileName),
       // This endpoint is authorization-gated; shared caches must never replay
       // a file response to another user who knows the blob ID.
       'Cache-Control': 'private, no-store',

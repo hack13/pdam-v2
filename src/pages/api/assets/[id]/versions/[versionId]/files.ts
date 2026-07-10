@@ -8,6 +8,7 @@ import { updateStorageAccounting } from '../../../../../../lib/storage-accountin
 import { cleanupUnreferencedBlobs } from '../../../../../../lib/blob-cleanup';
 import { storage } from '../../../../../../lib/storage';
 import { getMaxUploadBytes } from '../../../../../../lib/upload-config';
+import { contentDispositionForDownload } from '../../../../../../lib/download-headers';
 
 export const GET: APIRoute = async (context) => {
   const auth = await requireAuth(context);
@@ -64,7 +65,7 @@ export const GET: APIRoute = async (context) => {
 
     const presignedUrl = await storage.getPresignedUrl(storageObj.storageKey, {
       expiresInSeconds: 300,
-      contentDisposition: `attachment; filename="${blob.fileName}"`,
+      contentDisposition: contentDispositionForDownload(blob.fileName),
     });
 
     // The authorization result and the signed URL are both user-specific.
@@ -85,7 +86,7 @@ export const GET: APIRoute = async (context) => {
   return new Response(new Uint8Array(fileData.data), {
     headers: {
       'Content-Type': fileData.mimeType,
-      'Content-Disposition': `attachment; filename="${fileData.fileName}"`,
+      'Content-Disposition': contentDispositionForDownload(fileData.fileName),
       'Content-Length': String(fileData.data.length),
       'Cache-Control': 'private, no-store',
     },

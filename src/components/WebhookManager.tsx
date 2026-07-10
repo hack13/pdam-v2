@@ -9,7 +9,7 @@ interface Webhook {
   id: string;
   marketplaceSourceId: string | null;
   endpointUrl: string;
-  secret: string;
+  secret?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -25,7 +25,7 @@ export function WebhookManager() {
   const [marketplaceSourceId, setMarketplaceSourceId] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
-  const [revealedSecretId, setRevealedSecretId] = useState<string | null>(null);
+  const [revealedSecrets, setRevealedSecrets] = useState<Record<string, string>>({});
 
   useEffect(() => {
     void loadData();
@@ -72,7 +72,7 @@ export function WebhookManager() {
       setShowForm(false);
       setEndpointUrl('');
       setMarketplaceSourceId('');
-      setRevealedSecretId(data.id);
+      if (data.secret) setRevealedSecrets((current) => ({ ...current, [data.id]: data.secret }));
       await loadData();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Failed to create');
@@ -93,7 +93,8 @@ export function WebhookManager() {
       setError(data.error || 'Failed to rotate secret');
       return;
     }
-    setRevealedSecretId(id);
+    const data = await res.json().catch(() => ({}));
+    if (data.secret) setRevealedSecrets((current) => ({ ...current, [id]: data.secret }));
     await loadData();
   }
 
@@ -193,19 +194,20 @@ Respond with:
                     )}
                   </p>
                   <p className="mt-2 font-mono text-xs text-zinc-500">
-                    Secret:{' '}
-                    {revealedSecretId === hook.id
-                      ? hook.secret
-                      : `${hook.secret.slice(0, 8)}…`}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setRevealedSecretId((id) => (id === hook.id ? null : hook.id))
-                      }
-                      className="ml-2 text-indigo-400 hover:text-indigo-300"
-                    >
-                      {revealedSecretId === hook.id ? 'Hide' : 'Reveal'}
-                    </button>
+                    Secret:{' '}{revealedSecrets[hook.id] ?? 'Stored securely'}
+                    {revealedSecrets[hook.id] && (
+                      <button
+                        type="button"
+                        onClick={() => setRevealedSecrets((current) => {
+                          const next = { ...current };
+                          delete next[hook.id];
+                          return next;
+                        })}
+                        className="ml-2 text-indigo-400 hover:text-indigo-300"
+                      >
+                        Hide
+                      </button>
+                    )}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">

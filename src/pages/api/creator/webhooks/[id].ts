@@ -4,6 +4,7 @@ import { db } from '../../../../db';
 import { creatorVerificationWebhooks, marketplaceSources } from '../../../../db/schema';
 import { requireCreator } from '../../../../lib/creator';
 import { generateWebhookSecret, validateWebhookEndpoint } from '../../../../lib/verification-webhook';
+import { decryptWebhookSecret, encryptWebhookSecret } from '../../../../lib/webhook-secrets';
 import { json, jsonError } from '../../../../lib/api-helpers';
 
 export const PUT: APIRoute = async (context) => {
@@ -68,7 +69,7 @@ export const PUT: APIRoute = async (context) => {
   }
 
   if (body.rotateSecret) {
-    updates.secret = generateWebhookSecret();
+    updates.secret = encryptWebhookSecret(generateWebhookSecret());
   }
 
   const [row] = await db
@@ -77,7 +78,15 @@ export const PUT: APIRoute = async (context) => {
     .where(eq(creatorVerificationWebhooks.id, webhookId))
     .returning();
 
-  return json(row);
+  return json({
+    id: row.id,
+    marketplaceSourceId: row.marketplaceSourceId,
+    endpointUrl: row.endpointUrl,
+    isActive: row.isActive,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    ...(body.rotateSecret ? { secret: decryptWebhookSecret(row.secret) } : {}),
+  });
 };
 
 export const DELETE: APIRoute = async (context) => {

@@ -12,6 +12,7 @@ import {
   getMarketplaceMeta,
   resolveCreatorWebhook,
 } from '../../../../lib/verification-webhook';
+import { decryptWebhookSecret } from '../../../../lib/webhook-secrets';
 import {
   createLinkedCopy,
   recordVerifiedOwnership,
@@ -96,7 +97,7 @@ export const POST: APIRoute = async (context) => {
 
   const result = await callVerificationWebhook({
     endpointUrl: webhook.endpointUrl,
-    secret: webhook.secret,
+    secret: decryptWebhookSecret(webhook.secret),
     productId: listing.id,
     productTitle: listing.title,
     marketplaceSourceId: body.marketplaceSourceId,
