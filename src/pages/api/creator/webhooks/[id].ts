@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '../../../../db';
 import { creatorVerificationWebhooks, marketplaceSources } from '../../../../db/schema';
 import { requireCreator } from '../../../../lib/creator';
-import { generateWebhookSecret } from '../../../../lib/verification-webhook';
+import { generateWebhookSecret, validateWebhookEndpoint } from '../../../../lib/verification-webhook';
 import { json, jsonError } from '../../../../lib/api-helpers';
 
 export const PUT: APIRoute = async (context) => {
@@ -44,12 +44,13 @@ export const PUT: APIRoute = async (context) => {
   if (body.endpointUrl !== undefined) {
     const trimmed = body.endpointUrl.trim();
     if (!trimmed) return jsonError('endpointUrl cannot be empty');
+    let endpointUrl: URL;
     try {
-      new URL(trimmed);
-    } catch {
-      return jsonError('endpointUrl must be a valid URL');
+      endpointUrl = await validateWebhookEndpoint(trimmed);
+    } catch (err) {
+      return jsonError(err instanceof Error ? err.message : 'endpointUrl is not allowed');
     }
-    updates.endpointUrl = trimmed;
+    updates.endpointUrl = endpointUrl.toString();
   }
 
   if (body.marketplaceSourceId !== undefined) {

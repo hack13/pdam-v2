@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../../../../db';
 import { creatorVerificationWebhooks, marketplaceSources } from '../../../../db/schema';
 import { requireCreator } from '../../../../lib/creator';
-import { generateWebhookSecret } from '../../../../lib/verification-webhook';
+import { generateWebhookSecret, validateWebhookEndpoint } from '../../../../lib/verification-webhook';
 import { json, jsonError } from '../../../../lib/api-helpers';
 
 function serializeWebhook(row: typeof creatorVerificationWebhooks.$inferSelect) {
@@ -46,13 +46,11 @@ export const POST: APIRoute = async (context) => {
   }
 
   if (!body.endpointUrl?.trim()) return jsonError('endpointUrl is required');
+  let endpointUrl: URL;
   try {
-    const url = new URL(body.endpointUrl.trim());
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
-      return jsonError('endpointUrl must be http or https');
-    }
-  } catch {
-    return jsonError('endpointUrl must be a valid URL');
+    endpointUrl = await validateWebhookEndpoint(body.endpointUrl);
+  } catch (err) {
+    return jsonError(err instanceof Error ? err.message : 'endpointUrl is not allowed');
   }
 
   if (body.marketplaceSourceId) {
@@ -68,7 +66,7 @@ export const POST: APIRoute = async (context) => {
     .insert(creatorVerificationWebhooks)
     .values({
       userId: auth.user.id,
-      endpointUrl: body.endpointUrl.trim(),
+      endpointUrl: endpointUrl.toString(),
       marketplaceSourceId: body.marketplaceSourceId || null,
       secret,
       isActive: true,

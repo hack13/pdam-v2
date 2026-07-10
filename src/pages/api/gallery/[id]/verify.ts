@@ -5,7 +5,6 @@ import {
   products,
   galleryPurchaseLinks,
   ownershipVerifications,
-  users,
 } from '../../../../db/schema';
 import { requireAuth, json, jsonError } from '../../../../lib/api-helpers';
 import {
@@ -77,11 +76,6 @@ export const POST: APIRoute = async (context) => {
     );
   }
 
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, auth.user.id),
-  });
-  if (!user) return jsonError('User not found', 401);
-
   const licenseKey = body.licenseKey.trim();
   const now = new Date();
 
@@ -109,8 +103,6 @@ export const POST: APIRoute = async (context) => {
     marketplaceSlug: marketplace.slug,
     marketplaceName: marketplace.name,
     licenseKey,
-    userId: user.id,
-    userEmail: user.email,
   });
 
   if (!result.verified) {
