@@ -28,7 +28,8 @@ export const GET: APIRoute = async (context) => {
   }
 
   // Gallery listings are publicly viewable (including thumbnails).
-  if (!product.isGalleryListed) {
+  const isPublicThumbnail = product.isGalleryListed;
+  if (!isPublicThumbnail) {
     const session = await getSessionFromContext(context);
     if (!session?.user || product.ownerUserId !== session.user.id) {
       return new Response('Forbidden', { status: 403 });
@@ -40,11 +41,23 @@ export const GET: APIRoute = async (context) => {
     return new Response('Not found', { status: 404 });
   }
 
+  const headers: Record<string, string> = {
+    'Content-Type': 'image/webp',
+    // Gallery thumbnails are intentionally public. Private thumbnails may be
+    // cached only by the user's browser, and only for a short period.
+    'Cache-Control': isPublicThumbnail
+      ? 'public, max-age=86400'
+      : 'private, max-age=900',
+  };
+
+  if (!isPublicThumbnail) {
+    // Keep a browser cache entry scoped to the authenticated session rather
+    // than allowing it to be reused after a different user signs in.
+    headers.Vary = 'Cookie';
+  }
+
   return new Response(new Uint8Array(data), {
     status: 200,
-    headers: {
-      'Content-Type': 'image/webp',
-      'Cache-Control': 'public, max-age=86400',
-    },
+    headers,
   });
 };

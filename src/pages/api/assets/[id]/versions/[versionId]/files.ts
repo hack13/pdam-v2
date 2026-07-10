@@ -67,7 +67,14 @@ export const GET: APIRoute = async (context) => {
       contentDisposition: `attachment; filename="${blob.fileName}"`,
     });
 
-    return context.redirect(presignedUrl, 302);
+    // The authorization result and the signed URL are both user-specific.
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: presignedUrl,
+        'Cache-Control': 'private, no-store',
+      },
+    });
   }
 
   const fileData = await getFileByBlobId(blobId);
@@ -80,6 +87,7 @@ export const GET: APIRoute = async (context) => {
       'Content-Type': fileData.mimeType,
       'Content-Disposition': `attachment; filename="${fileData.fileName}"`,
       'Content-Length': String(fileData.data.length),
+      'Cache-Control': 'private, no-store',
     },
   });
 };

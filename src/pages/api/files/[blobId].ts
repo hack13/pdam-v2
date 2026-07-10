@@ -40,7 +40,10 @@ export const GET: APIRoute = async (context) => {
   const lastModified = blob.createdAt.toUTCString();
 
   if (ifNoneMatch === etag || ifModifiedSince === lastModified) {
-    return new Response(null, { status: 304 });
+    return new Response(null, {
+      status: 304,
+      headers: { 'Cache-Control': 'private, no-store' },
+    });
   }
 
   const file = await getFileByBlobId(blobId);

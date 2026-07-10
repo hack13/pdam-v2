@@ -22,7 +22,9 @@ export const GET: APIRoute = async (context) => {
     headers: {
       'Content-Type': image.mimeType,
       'Content-Length': String(image.data.length),
-      'Cache-Control': 'public, max-age=31536000, immutable',
+      // The URL is stable but access is authorized per user. Never let a
+      // shared cache replay an image after the authorization check.
+      'Cache-Control': 'private, no-store',
     },
   });
 };
