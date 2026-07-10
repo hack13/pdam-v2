@@ -1,6 +1,6 @@
 import { mkdirSync, existsSync, unlinkSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { isAbsolute, join, normalize, relative } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { createWriteStream } from 'node:fs';
@@ -20,7 +20,18 @@ export class LocalStorageProvider implements StorageProvider {
   }
 
   private resolvePath(key: string): string {
-    return join(this.basePath, key);
+    if (!key || isAbsolute(key)) {
+      throw new Error('Storage key must be a non-empty relative path');
+    }
+
+    const basePath = normalize(this.basePath);
+    const filePath = normalize(join(basePath, key));
+    const relativePath = relative(basePath, filePath);
+    if (relativePath === '..' || relativePath.startsWith(`..${process.platform === 'win32' ? '\\' : '/'}`)) {
+      throw new Error('Storage key must remain within the storage directory');
+    }
+
+    return filePath;
   }
 
   async put(key: string, data: Buffer | Uint8Array): Promise<string> {

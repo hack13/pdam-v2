@@ -61,7 +61,6 @@ function createStorageProvider(): StorageProvider {
         endpoint,
         region,
         bucket,
-        accessKeyId: accessKeyId.slice(0, 4) + '***',
         forcePathStyle,
         publicUrl: getEnv('S3_PUBLIC_URL') ?? '(auto)',
       }),

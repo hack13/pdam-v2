@@ -24,6 +24,13 @@ export const auth = betterAuth({
   appName: 'PDAM',
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
+  advanced: {
+    defaultCookieAttributes: {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    },
+  },
   database: drizzleAdapter(db, {
     provider: 'pg',
     schema: {

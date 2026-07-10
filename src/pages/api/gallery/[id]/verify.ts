@@ -21,6 +21,7 @@ import {
   createLinkedCopy,
   recordVerifiedOwnership,
 } from '../../../../lib/linked-copy';
+import { fingerprintLicenseKey } from '../../../../lib/license-key-fingerprint';
 
 export const POST: APIRoute = async (context) => {
   const auth = await requireAuth(context);
@@ -94,6 +95,7 @@ export const POST: APIRoute = async (context) => {
   }
 
   const licenseKey = body.licenseKey.trim();
+  const licenseKeyFingerprint = fingerprintLicenseKey(licenseKey);
   const now = new Date();
 
   const existingAttempt = await db.query.ownershipVerifications.findFirst({
@@ -128,7 +130,7 @@ export const POST: APIRoute = async (context) => {
         .update(ownershipVerifications)
         .set({
           marketplaceSourceId: body.marketplaceSourceId,
-          licenseKey,
+          licenseKey: licenseKeyFingerprint,
           status: 'failed',
           failureReason: result.reason ?? 'License could not be verified',
           updatedAt: now,
@@ -139,7 +141,7 @@ export const POST: APIRoute = async (context) => {
         userId: auth.user.id,
         productId,
         marketplaceSourceId: body.marketplaceSourceId,
-        licenseKey,
+        licenseKey: licenseKeyFingerprint,
         status: 'failed',
         failureReason: result.reason ?? 'License could not be verified',
       });
