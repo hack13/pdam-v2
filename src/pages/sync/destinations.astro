@@ -1,0 +1,16 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SyncNav from '../../components/SyncNav.astro';
+import { BackupSyncManager } from '../../components/BackupSyncManager';
+import { getSessionFromContext } from '../../lib/session';
+const session = await getSessionFromContext(Astro);
+if (!session?.user) return Astro.redirect('/login');
+---
+
+<BaseLayout title="Sync Destinations - PDAM" isAuthenticated={true}>
+  <div class="mx-auto max-w-7xl px-6 py-10">
+    <div class="mb-8"><p class="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-300">Sync</p><h1 class="mt-2 text-3xl font-bold text-white">Destinations</h1><p class="mt-2 max-w-2xl text-sm text-zinc-400">Connect storage you control and create narrowly scoped tokens for your own machines.</p></div>
+    <SyncNav current="destinations" />
+    <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-6"><BackupSyncManager client:load /></div>
+  </div>
+</BaseLayout>

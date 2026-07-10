@@ -4,6 +4,7 @@ import { auth } from '../auth';
 import { db } from '../db';
 import { users } from '../db/schema';
 import { getSessionFromContext } from './session';
+import { authenticateSyncToken, type SyncScope } from './sync-tokens';
 
 export interface AuthedUser {
   id: string;
@@ -65,6 +66,20 @@ export async function requireAuth(
     status: 401,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+export async function requireSyncAuth(context: APIContext, scope: SyncScope): Promise<{ user: AuthedUser } | Response> {
+  const authorization = context.request.headers.get('authorization');
+  const token = authorization?.match(/^bearer\s+(pdam_sync_.+)$/i)?.[1];
+  if (token) {
+    const syncToken = await authenticateSyncToken(token, scope);
+    if (syncToken) {
+      const user = await db.query.users.findFirst({ where: eq(users.id, syncToken.userId) });
+      if (user) return { user };
+    }
+    return jsonError('Invalid or expired sync token', 401);
+  }
+  return requireAuth(context);
 }
 
 export function json(data: unknown, status = 200) {

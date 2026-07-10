@@ -1,5 +1,6 @@
 function getEnv(name: string): string | undefined {
-  const fromMeta = (import.meta.env as Record<string, unknown>)[name];
+  const runtimeEnv = (import.meta as unknown as { env?: Record<string, unknown> }).env;
+  const fromMeta = runtimeEnv?.[name];
   if (typeof fromMeta === 'string' && fromMeta.length > 0) return fromMeta;
   const fromProcess = process.env[name];
   if (typeof fromProcess === 'string' && fromProcess.length > 0) return fromProcess;

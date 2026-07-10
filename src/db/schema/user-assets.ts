@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, bigint, uuid, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, bigint, uuid, boolean, integer, index, uniqueIndex } from 'drizzle-orm/pg-core';
 import { users } from './auth';
 import { globalFileBlobs } from './global-storage';
 import { products, productVersions, marketplaceSources } from './marketplace';
@@ -13,9 +13,87 @@ export const userStorageConnections = pgTable('user_storage_connections', {
   refreshToken: text('refresh_token'),
   tokenExpiresAt: timestamp('token_expires_at'),
   rootFolderId: text('root_folder_id'),
+  rootPath: text('root_path'),
+  credentialsEncrypted: text('credentials_encrypted'),
+  syncMode: text('sync_mode').notNull().default('snapshot'),
+  enabled: boolean('enabled').notNull().default(true),
+  lastSuccessfulSyncAt: timestamp('last_successful_sync_at'),
+  lastAttemptedSyncAt: timestamp('last_attempted_sync_at'),
+  lastError: text('last_error'),
+  errorCount: integer('error_count').notNull().default(0),
+  scheduleEnabled: boolean('schedule_enabled').notNull().default(false),
+  scheduleFrequency: text('schedule_frequency'),
+  scheduleDayOfWeek: integer('schedule_day_of_week'),
+  scheduleTime: text('schedule_time'),
+  scheduleTimezone: text('schedule_timezone').notNull().default('UTC'),
+  lastScheduledAt: timestamp('last_scheduled_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
+}, (table) => [
+  index('user_storage_connections_user_idx').on(table.userId),
+  index('user_storage_connections_enabled_idx').on(table.enabled),
+]);
+
+export const syncTokens = pgTable('sync_tokens', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tokenHash: text('token_hash').notNull().unique(),
+  tokenPrefix: text('token_prefix').notNull(),
+  name: text('name').notNull(),
+  scopes: text('scopes').notNull().default('sync:manifest,sync:read,sync:export'),
+  clientMetadata: text('client_metadata'),
+  expiresAt: timestamp('expires_at'),
+  lastUsedAt: timestamp('last_used_at'),
+  revokedAt: timestamp('revoked_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => [
+  index('sync_tokens_user_idx').on(table.userId),
+  uniqueIndex('sync_tokens_hash_idx').on(table.tokenHash),
+]);
+
+export const syncRuns = pgTable('sync_runs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  connectionId: uuid('connection_id').notNull().references(() => userStorageConnections.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  status: text('status').notNull().default('queued'),
+  filesDiscovered: integer('files_discovered').notNull().default(0),
+  filesUploaded: integer('files_uploaded').notNull().default(0),
+  filesSkipped: integer('files_skipped').notNull().default(0),
+  filesFailed: integer('files_failed').notNull().default(0),
+  bytesUploaded: bigint('bytes_uploaded', { mode: 'number' }).notNull().default(0),
+  manifestId: text('manifest_id'),
+  cursor: text('cursor'),
+  errorSummary: text('error_summary'),
+  cancelRequestedAt: timestamp('cancel_requested_at'),
+  pgBossJobId: text('pgboss_job_id'),
+  pgBossQueue: text('pgboss_queue'),
+  startedAt: timestamp('started_at'),
+  completedAt: timestamp('completed_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => [
+  index('sync_runs_connection_idx').on(table.connectionId),
+  index('sync_runs_user_idx').on(table.userId),
+]);
+
+export const syncItems = pgTable('sync_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  runId: uuid('run_id').notNull().references(() => syncRuns.id, { onDelete: 'cascade' }),
+  connectionId: uuid('connection_id').notNull().references(() => userStorageConnections.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  blobId: uuid('blob_id').notNull().references(() => globalFileBlobs.id),
+  destinationKey: text('destination_key').notNull(),
+  contentHash: text('content_hash').notNull(),
+  byteSize: bigint('byte_size', { mode: 'number' }).notNull(),
+  status: text('status').notNull().default('pending'),
+  remoteId: text('remote_id'),
+  etag: text('etag'),
+  retryCount: integer('retry_count').notNull().default(0),
+  lastError: text('last_error'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => [
+  index('sync_items_run_idx').on(table.runId),
+  uniqueIndex('sync_items_destination_blob_idx').on(table.connectionId, table.blobId, table.contentHash),
+]);
 
 export const userLibraryItems = pgTable('user_library_items', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -56,3 +134,7 @@ export type UserAssetFile = typeof userAssetFiles.$inferSelect;
 export type NewUserAssetFile = typeof userAssetFiles.$inferInsert;
 export type StorageAccounting = typeof storageAccounting.$inferSelect;
 export type NewStorageAccounting = typeof storageAccounting.$inferInsert;
+export type SyncToken = typeof syncTokens.$inferSelect;
+export type NewSyncToken = typeof syncTokens.$inferInsert;
+export type SyncRun = typeof syncRuns.$inferSelect;
+export type SyncItem = typeof syncItems.$inferSelect;

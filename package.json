@@ -22,7 +22,8 @@
     "db:apply-verification-rate-limit": "node scripts/apply-verification-rate-limit-migration.mjs",
     "db:hash-ownership-verification-license-keys": "node scripts/hash-ownership-verification-license-keys.mjs",
     "uploads:cleanup": "node scripts/cleanup-pending-uploads.mjs",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "sync:worker": "tsx scripts/sync-worker.ts"
   },
   "dependencies": {
     "@astrojs/node": "^11.0.2",
@@ -32,10 +33,12 @@
     "@better-auth/passkey": "^1.6.23",
     "astro": "^7.0.6",
     "better-auth": "^1.6.23",
+    "dotenv": "^17.4.2",
     "drizzle-orm": "^0.44.0",
     "hash-wasm": "^4.12.0",
     "isomorphic-dompurify": "^3.18.0",
     "marked": "^18.0.5",
+    "pg-boss": "^12.26.0",
     "postgres": "^3.4.7",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
@@ -51,6 +54,7 @@
     "@types/react-dom": "^19.2.3",
     "drizzle-kit": "^0.30.0",
     "tailwindcss": "^4.3.2",
+    "tsx": "^4.23.0",
     "typescript": "^5.8.3"
   }
 }

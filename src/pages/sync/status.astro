@@ -1,0 +1,48 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SyncNav from '../../components/SyncNav.astro';
+import { getSessionFromContext } from '../../lib/session';
+import { db } from '../../db';
+import { eq } from 'drizzle-orm';
+import { syncRuns, userStorageConnections } from '../../db/schema';
+const session = await getSessionFromContext(Astro);
+if (!session?.user) return Astro.redirect('/login');
+const runs = await db.query.syncRuns.findMany({ where: eq(syncRuns.userId, session.user.id), orderBy: (table, { desc }) => [desc(table.createdAt)], limit: 50 });
+const connections = await db.query.userStorageConnections.findMany({ where: eq(userStorageConnections.userId, session.user.id) });
+const names = new Map(connections.map((connection) => [connection.id, connection.providerName]));
+---
+
+<BaseLayout title="Sync Activity - PDAM" isAuthenticated={true}>
+  <div class="mx-auto max-w-7xl px-6 py-10"><div class="mb-8"><p class="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-300">Sync</p><h1 class="mt-2 text-3xl font-bold text-white">Activity</h1><p class="mt-2 max-w-2xl text-sm text-zinc-400">Every run, partial upload, and provider error is recorded here.</p></div><SyncNav current="status" />
+    <section class="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]"><div class="border-b border-white/10 px-6 py-4"><h2 class="font-semibold text-white">Sync logs</h2></div>{runs.length === 0 ? <div class="p-8 text-center text-sm text-zinc-500">No sync runs yet.</div> : <div class="divide-y divide-white/5">{runs.map((run) => <details class="group px-6 py-4"><summary class="flex cursor-pointer list-none items-center justify-between gap-4"><div class="min-w-0"><div class="flex items-center gap-3"><span class:list={["rounded-full px-2 py-1 text-xs", run.status === 'completed' ? "bg-emerald-400/10 text-emerald-300" : run.status === 'partial' ? "bg-amber-400/10 text-amber-300" : ['cancelled', 'cancellation_requested'].includes(run.status) ? "bg-zinc-400/10 text-zinc-300" : "bg-red-400/10 text-red-300"]}>{run.status === 'cancellation_requested' ? 'stopping' : run.status}</span><span class="truncate text-sm font-medium text-white">{names.get(run.connectionId) ?? 'Destination'}</span></div><p class="mt-2 text-xs text-zinc-500">{run.createdAt.toLocaleString()} · {run.filesUploaded} uploaded · {run.filesFailed} failed</p></div><div class="flex items-center gap-3"><button type="button" data-cancel-run={run.id} class:list={["rounded-lg border border-red-400/20 px-3 py-1.5 text-xs text-red-300 hover:bg-red-400/10", !['running', 'queued'].includes(run.status) && 'hidden']}>Stop</button><span class="text-zinc-500 transition-transform group-open:rotate-180">⌄</span></div></summary>{(run.errorSummary || run.filesFailed > 0) && <div class="mt-4 rounded-lg border border-red-400/15 bg-red-400/[0.06] p-3 text-sm text-red-200"><p>{run.errorSummary ?? `${run.filesFailed} file(s) failed`}</p><p class="mt-2 text-xs text-red-300/70">Run ID: {run.id}</p></div>}</details>)}</div>}</section>
+  </div>
+</BaseLayout>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-cancel-run]').forEach((button) => {
+    button.addEventListener('click', async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      button.disabled = true;
+      button.textContent = 'Stopping…';
+      const response = await fetch(`/api/sync/runs/${button.dataset.cancelRun}`, { method: 'DELETE' });
+      if (response.ok) {
+        button.textContent = 'Stopping…';
+        const runId = button.dataset.cancelRun;
+        let attempts = 0;
+        const poll = async () => {
+          attempts++;
+          const stateResponse = await fetch(`/api/sync/runs/${runId}`);
+          const state = stateResponse.ok ? await stateResponse.json() : null;
+          const terminal = state?.run && ['completed', 'failed', 'partial', 'cancelled'].includes(state.run.status);
+          if (terminal || attempts >= 60) window.location.reload();
+          else window.setTimeout(poll, 1000);
+        };
+        window.setTimeout(poll, 500);
+      } else {
+        button.disabled = false;
+        button.textContent = 'Stop';
+      }
+    });
+  });
+</script>

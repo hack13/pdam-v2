@@ -1,0 +1,37 @@
+import 'dotenv/config';
+import { eq } from 'drizzle-orm';
+import { getSyncBoss, SYNC_QUEUE, type SyncJobData } from '../src/lib/sync-queue';
+import { db } from '../src/db';
+import { syncRuns } from '../src/db/schema';
+import { runSync } from '../src/lib/sync-service';
+
+const boss = await getSyncBoss();
+const concurrency = Math.max(1, Number(process.env.SYNC_WORKER_CONCURRENCY ?? 2));
+console.info('[sync-worker] started', { queue: SYNC_QUEUE, concurrency });
+
+await boss.work(SYNC_QUEUE, { includeMetadata: true, localConcurrency: concurrency, groupConcurrency: 1, pollingIntervalSeconds: 2 }, async ([job]) => {
+  const data = job.data as SyncJobData;
+  console.info('[sync-worker] job started', { jobId: job.id, runId: data.runId, connectionId: data.connectionId, retryCount: job.retryCount });
+  await db.update(syncRuns).set({ status: 'running', startedAt: new Date() }).where(eq(syncRuns.id, data.runId));
+  try {
+    const result = await runSync(data.connectionId, { userId: data.userId, runId: data.runId, signal: job.signal });
+    if (result.status === 'cancelled') return result;
+    if (result.filesFailed > 0) {
+      await db.update(syncRuns).set({ status: 'retrying', errorSummary: `${result.filesFailed} file(s) failed; pg-boss will retry this job` }).where(eq(syncRuns.id, data.runId));
+      throw new Error(`${result.filesFailed} file(s) failed`);
+    }
+    console.info('[sync-worker] job completed', { jobId: job.id, runId: data.runId, status: result.status });
+    return result;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Sync job failed';
+    const exhausted = job.retryCount >= job.retryLimit;
+    await db.update(syncRuns).set({ status: exhausted ? 'failed' : 'retrying', completedAt: exhausted ? new Date() : undefined, errorSummary: message }).where(eq(syncRuns.id, data.runId));
+    console.error('[sync-worker] job failed', { jobId: job.id, runId: data.runId, retryCount: job.retryCount, retryLimit: job.retryLimit, exhausted, error: message });
+    throw error;
+  }
+});
+
+const shutdown = async (signal: string) => { console.info('[sync-worker] stopping', { signal }); await boss.stop({ graceful: true }); process.exit(0); };
+process.once('SIGINT', () => void shutdown('SIGINT'));
+process.once('SIGTERM', () => void shutdown('SIGTERM'));
+await new Promise(() => {});

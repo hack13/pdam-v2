@@ -33,7 +33,8 @@ export interface StorageProvider {
 function getEnv(name: string): string | undefined {
   // import.meta.env holds all .env values in Astro/Vite; also fall back to
   // process.env for values set explicitly on the shell.
-  const fromMeta = (import.meta.env as Record<string, unknown>)[name];
+  const runtimeEnv = (import.meta as unknown as { env?: Record<string, unknown> }).env;
+  const fromMeta = runtimeEnv?.[name];
   if (typeof fromMeta === 'string' && fromMeta.length > 0) return fromMeta;
   const fromProcess = process.env[name];
   if (typeof fromProcess === 'string' && fromProcess.length > 0) return fromProcess;

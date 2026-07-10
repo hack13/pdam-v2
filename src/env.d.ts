@@ -15,6 +15,7 @@ interface ImportMetaEnv {
   readonly S3_PUBLIC_URL?: string;
   readonly UPLOADS_DIR?: string;
   readonly ADMIN_EMAILS?: string;
+  readonly SYNC_WORKER_SECRET?: string;
 }
 
 interface ImportMeta {
