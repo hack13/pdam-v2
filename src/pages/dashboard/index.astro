@@ -9,6 +9,8 @@ import { db } from '../../db';
 import { products, users } from '../../db/schema';
 import { eq } from 'drizzle-orm';
 import { getUserStorage, formatBytes } from '../../lib/storage-accounting';
+import { isCreatorUser, getLinkedCreator } from '../../lib/creator';
+import { getPendingApplication } from '../../lib/creator-applications';
 
 const session = await getSessionFromContext(Astro);
 
@@ -25,6 +27,9 @@ if (!user) {
 }
 
 const isAuthenticated = true;
+const isCreator = isCreatorUser(user);
+const linkedCreator = isCreator ? await getLinkedCreator(user.id) : null;
+const pendingApplication = await getPendingApplication(user.id);
 
 const assetCount = (await db.query.products.findMany({
   where: eq(products.ownerUserId, user.id),
@@ -52,6 +57,39 @@ const fallbackAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent
         <p class="mt-1 text-sm text-zinc-400">Manage your account settings and view usage.</p>
       </div>
     </div>
+
+    {!isCreator && !pendingApplication && (
+      <div class="mb-8 rounded-xl border border-white/10 bg-white/5 p-5">
+        <h2 class="font-medium text-white">Are you a content creator?</h2>
+        <p class="mt-1 text-sm text-zinc-400">
+          Apply to claim your creator identity. An admin will verify your storefront proof before
+          granting gallery listing access.
+        </p>
+        <a href="/creator/apply" class="btn-primary mt-4 inline-flex">Become a creator</a>
+      </div>
+    )}
+
+    {pendingApplication && (
+      <div class="mb-8 rounded-xl border border-amber-500/20 bg-amber-500/5 p-5">
+        <h2 class="font-medium text-white">Creator application pending</h2>
+        <p class="mt-1 text-sm text-zinc-400">
+          Your request to represent <span class="text-zinc-200">{pendingApplication.requestedCreatorName}</span> is
+          waiting for admin review.
+        </p>
+        <a href="/creator/apply" class="mt-3 inline-block text-sm text-indigo-400 hover:text-indigo-300">
+          View application &rarr;
+        </a>
+      </div>
+    )}
+
+    {isCreator && linkedCreator && (
+      <div class="mb-8 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-5">
+        <h2 class="font-medium text-white">Verified creator · {linkedCreator.name}</h2>
+        <a href="/creator" class="mt-2 inline-block text-sm text-indigo-400 hover:text-indigo-300">
+          Open creator dashboard &rarr;
+        </a>
+      </div>
+    )}
 
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       <div class="rounded-xl border border-white/10 bg-white/5 p-6">

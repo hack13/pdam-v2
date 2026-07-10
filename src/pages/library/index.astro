@@ -141,6 +141,11 @@ const creatorMap = Object.fromEntries(creatorsList.map((c) => [c.id, c]));
                     )}
                   </p>
                 ) : null}
+                {asset.sourceProductId && (
+                  <p class="mt-1 text-[10px] font-medium uppercase tracking-wide text-emerald-400/90">
+                    Linked from gallery
+                  </p>
+                )}
                 {asset.tags && asset.tags.length > 0 ? (
                   <div class="mt-1 flex flex-wrap gap-1">
                     {asset.tags.map((tag: string) => (

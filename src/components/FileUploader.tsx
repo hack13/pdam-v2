@@ -7,6 +7,7 @@ interface Props {
   versionId: string;
   existingFiles: { id: string; fileName: string; fileSize: number; mimeType: string }[];
   onFilesUploaded: () => void;
+  readOnly?: boolean;
 }
 
 function formatSize(bytes: number): string {
@@ -27,7 +28,13 @@ function formatProgress(progress: UploadProgress): string {
   return `Uploading… ${pct}% (${formatSize(progress.bytes)} / ${formatSize(progress.total)})`;
 }
 
-export function FileUploader({ productId, versionId, existingFiles, onFilesUploaded }: Props) {
+export function FileUploader({
+  productId,
+  versionId,
+  existingFiles,
+  onFilesUploaded,
+  readOnly = false,
+}: Props) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<{ current: number; total: number; detail?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -175,23 +182,26 @@ export function FileUploader({ productId, versionId, existingFiles, onFilesUploa
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                 </button>
-                <button
-                  type="button"
-                  onClick={(e) => handleRemoveClick(e, file.id)}
-                  className="rounded p-1 text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
-                  aria-label={`Remove ${file.fileName}`}
-                  title="Remove file"
-                >
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleRemoveClick(e, file.id)}
+                    className="rounded p-1 text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                    aria-label={`Remove ${file.fileName}`}
+                    title="Remove file"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
               </div>
             </li>
           ))}
         </ul>
       )}
 
+      {!readOnly && (
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -219,6 +229,11 @@ export function FileUploader({ productId, versionId, existingFiles, onFilesUploa
           disabled={uploading}
         />
       </div>
+      )}
+
+      {readOnly && existingFiles.length === 0 && (
+        <p className="text-sm text-zinc-500">No files in this version.</p>
+      )}
 
       {error && (
         <p className="text-sm text-red-400">{error}</p>

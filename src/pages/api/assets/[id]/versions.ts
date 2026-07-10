@@ -19,6 +19,10 @@ export const POST: APIRoute = async (context) => {
     return jsonError('Not found', 404);
   }
 
+  if (product.sourceProductId) {
+    return jsonError('Linked copies cannot add versions — sync updates from the creator instead', 403);
+  }
+
   let body: { version?: string; releaseNotes?: string };
   try {
     body = await context.request.json();

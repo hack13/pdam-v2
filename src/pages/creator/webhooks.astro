@@ -1,0 +1,26 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CreatorNav from '../../components/CreatorNav.astro';
+import { WebhookManager } from '../../components/WebhookManager';
+import { getCreatorUserFromContext } from '../../lib/creator';
+
+const creator = await getCreatorUserFromContext(Astro);
+if (!creator) {
+  return Astro.redirect('/dashboard');
+}
+---
+
+<BaseLayout title="Creator Verification - PDAM" isAuthenticated={true}>
+  <div class="mx-auto max-w-7xl px-6 py-12">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-white">Content Creator</h1>
+      <p class="mt-1 text-sm text-zinc-400">
+        Link your verification tooling for Gumroad, Jinxxy, and other marketplaces.
+      </p>
+    </div>
+
+    <CreatorNav current="webhooks" />
+
+    <WebhookManager client:load />
+  </div>
+</BaseLayout>

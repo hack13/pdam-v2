@@ -4,6 +4,7 @@ import {
   products,
   productVersions,
   userAssetFiles,
+  userLibraryItems,
   fileThumbnails,
 } from '../db/schema';
 import { storage } from './storage';
@@ -19,6 +20,14 @@ export async function deleteAsset(productId: string, ownerId: string): Promise<v
   if (!product || product.ownerUserId !== ownerId) {
     throw new Error('Asset not found');
   }
+
+  // Detach any buyer linked copies that pointed at this product as their source
+  await db
+    .update(products)
+    .set({ sourceProductId: null, updatedAt: new Date() })
+    .where(eq(products.sourceProductId, productId));
+
+  await db.delete(userLibraryItems).where(eq(userLibraryItems.productId, productId));
 
   const versions = await db.query.productVersions.findMany({
     where: eq(productVersions.productId, productId),
@@ -53,16 +62,35 @@ export async function deleteAsset(productId: string, ownerId: string): Promise<v
   // Cleanup unreferenced blobs and track physical bytes freed
   let physicalBytesFreed = await cleanupUnreferencedBlobs(affectedBlobIds);
 
-  if (product.thumbnailFileThumbnailId) {
-    const thumbnail = await db.query.fileThumbnails.findFirst({
-      where: eq(fileThumbnails.id, product.thumbnailFileThumbnailId),
+  const thumbnailId = product.thumbnailFileThumbnailId;
+  if (thumbnailId) {
+    // Clear this product's FK first so we can safely delete the thumbnail row.
+    // Linked copies may share the same thumbnail — only remove it when unused.
+    await db
+      .update(products)
+      .set({
+        thumbnailFileThumbnailId: null,
+        featuredThumbnailKey: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(products.id, productId));
+
+    const stillReferenced = await db.query.products.findFirst({
+      where: eq(products.thumbnailFileThumbnailId, thumbnailId),
+      columns: { id: true },
     });
 
-    if (thumbnail) {
-      await storage.delete(thumbnail.storageKey).catch(() => {});
-      await db.delete(fileThumbnails).where(eq(fileThumbnails.id, thumbnail.id));
-      const thumbnailPhysicalFreed = await cleanupUnreferencedBlobs([thumbnail.blobId]);
-      physicalBytesFreed += thumbnailPhysicalFreed;
+    if (!stillReferenced) {
+      const thumbnail = await db.query.fileThumbnails.findFirst({
+        where: eq(fileThumbnails.id, thumbnailId),
+      });
+
+      if (thumbnail) {
+        await storage.delete(thumbnail.storageKey).catch(() => {});
+        await db.delete(fileThumbnails).where(eq(fileThumbnails.id, thumbnail.id));
+        const thumbnailPhysicalFreed = await cleanupUnreferencedBlobs([thumbnail.blobId]);
+        physicalBytesFreed += thumbnailPhysicalFreed;
+      }
     }
   }
 

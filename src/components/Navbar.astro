@@ -5,6 +5,7 @@ import { db } from '../db';
 import { users } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { isAdminUser } from '../lib/admin';
+import { isCreatorUser } from '../lib/creator';
 
 interface Props {
   isAuthenticated: boolean;
@@ -15,6 +16,7 @@ const session = isAuthenticated ? await getSessionFromContext(Astro) : null;
 const userName = session?.user?.name ?? '';
 
 let isAdmin = false;
+let isCreator = false;
 let userImage = '';
 if (session?.user) {
   const user = await db.query.users.findFirst({
@@ -22,6 +24,7 @@ if (session?.user) {
   });
   if (user) {
     isAdmin = isAdminUser(user);
+    isCreator = isCreatorUser(user);
     userImage = user.image ?? '';
   }
 }
@@ -47,16 +50,20 @@ const fallbackAvatarUrl = userName
     {isAuthenticated ? (
       <div class="hidden items-center gap-8 md:flex">
         <a href="/library" class="text-sm text-zinc-400 transition-colors hover:text-white">Library</a>
+        <a href="/gallery" class="text-sm text-zinc-400 transition-colors hover:text-white">Gallery</a>
         <UserMenu
           client:load
           userName={userName}
           userImage={userImage}
           fallbackAvatarUrl={fallbackAvatarUrl}
           isAdmin={isAdmin}
+          isCreator={isCreator}
+          showCreatorApply={!isCreator}
         />
       </div>
     ) : (
       <div class="hidden items-center gap-8 md:flex">
+        <a href="/gallery" class="text-sm text-zinc-400 transition-colors hover:text-white">Gallery</a>
         <a href="#features" class="text-sm text-zinc-400 transition-colors hover:text-white">Features</a>
         <a href="#how-it-works" class="text-sm text-zinc-400 transition-colors hover:text-white">How It Works</a>
         <a href="#pricing" class="text-sm text-zinc-400 transition-colors hover:text-white">Pricing</a>

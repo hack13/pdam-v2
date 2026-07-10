@@ -13,9 +13,10 @@ interface Version {
 interface Props {
   productId: string;
   initialVersions: Version[];
+  readOnly?: boolean;
 }
 
-export function VersionsPanel({ productId, initialVersions }: Props) {
+export function VersionsPanel({ productId, initialVersions, readOnly = false }: Props) {
   const [versions, setVersions] = useState<Version[]>(initialVersions);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -45,16 +46,18 @@ export function VersionsPanel({ productId, initialVersions }: Props) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-white">Versions</h2>
-        <button
-          type="button"
-          onClick={() => setShowAddDialog(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:border-white/20 hover:bg-white/10"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          Add Version
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={() => setShowAddDialog(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:border-white/20 hover:bg-white/10"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Add Version
+          </button>
+        )}
       </div>
 
       {versions.length === 0 ? (
@@ -103,6 +106,7 @@ export function VersionsPanel({ productId, initialVersions }: Props) {
                   versionId={version.id}
                   existingFiles={version.files}
                   onFilesUploaded={refreshVersions}
+                  readOnly={readOnly}
                 />
               </div>
             </details>

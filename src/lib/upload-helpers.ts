@@ -10,6 +10,7 @@ export async function validateVersionAccess(
   userId: string,
   productId: string,
   versionId: string,
+  options: { allowLinkedCopyMutation?: boolean } = {},
 ): Promise<{ product: typeof products.$inferSelect; version: typeof productVersions.$inferSelect } | Response> {
   const product = await db.query.products.findFirst({
     where: eq(products.id, productId),
@@ -17,6 +18,13 @@ export async function validateVersionAccess(
 
   if (!product || product.ownerUserId !== userId) {
     return jsonError('Asset not found', 404);
+  }
+
+  if (product.sourceProductId && !options.allowLinkedCopyMutation) {
+    return jsonError(
+      'Linked copies cannot be modified — sync updates from the creator instead',
+      403,
+    );
   }
 
   const version = await db.query.productVersions.findFirst({

@@ -40,6 +40,14 @@ export const products = pgTable('products', {
   licenseKey: text('license_key'),
   externalId: text('external_id'),
   productUrl: text('product_url'),
+  /** When true, this product appears in the public gallery as a creator listing. */
+  isGalleryListed: boolean('is_gallery_listed').notNull().default(false),
+  /**
+   * If set, this product is a buyer's linked copy of a creator gallery listing.
+   * The buyer can download and receive updates, but cannot modify the source.
+   */
+  sourceProductId: uuid('source_product_id'),
+  lastSyncedAt: timestamp('last_synced_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

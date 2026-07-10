@@ -14,6 +14,9 @@
     "db:apply-role": "node scripts/apply-role-migration.mjs",
     "db:apply-description-images": "node scripts/apply-description-images-migration.mjs",
     "db:apply-pending-uploads": "node scripts/apply-pending-uploads-migration.mjs",
+    "db:apply-gallery-creator": "node scripts/apply-gallery-creator-migration.mjs",
+    "db:apply-creator-link": "node scripts/apply-creator-link-migration.mjs",
+    "db:apply-creator-applications": "node scripts/apply-creator-applications-migration.mjs",
     "uploads:cleanup": "node scripts/cleanup-pending-uploads.mjs",
     "db:studio": "drizzle-kit studio"
   },

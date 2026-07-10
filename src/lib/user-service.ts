@@ -9,6 +9,9 @@ import {
   userLibraryItems,
   userStorageConnections,
   creators,
+  creatorVerificationWebhooks,
+  ownershipVerifications,
+  creatorApplications,
 } from '../db/schema';
 import { deleteAsset } from './asset-service';
 import { storage } from './storage';
@@ -31,6 +34,9 @@ export async function deleteUser(userId: string): Promise<void> {
     await deleteAsset(product.id, userId);
   }
 
+  await db.delete(creatorApplications).where(eq(creatorApplications.userId, userId));
+  await db.delete(ownershipVerifications).where(eq(ownershipVerifications.userId, userId));
+  await db.delete(creatorVerificationWebhooks).where(eq(creatorVerificationWebhooks.userId, userId));
   await db.delete(userLibraryItems).where(eq(userLibraryItems.userId, userId));
   await db.delete(userStorageConnections).where(eq(userStorageConnections.userId, userId));
   await db.delete(marketplaceSources).where(eq(marketplaceSources.ownerUserId, userId));

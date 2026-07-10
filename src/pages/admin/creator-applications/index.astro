@@ -1,0 +1,24 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import AdminNav from '../../../components/AdminNav.astro';
+import { CreatorApplicationsAdmin } from '../../../components/CreatorApplicationsAdmin';
+import { getAdminUserFromContext } from '../../../lib/admin';
+
+const adminUser = await getAdminUserFromContext(Astro);
+if (!adminUser) {
+  return Astro.redirect('/dashboard');
+}
+---
+
+<BaseLayout title="Creator Applications - Admin - PDAM" isAuthenticated={true}>
+  <div class="mx-auto max-w-7xl px-6 py-12">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-white">Admin</h1>
+      <p class="mt-1 text-sm text-zinc-400">Review creator onboarding applications.</p>
+    </div>
+
+    <AdminNav current="creator-applications" />
+
+    <CreatorApplicationsAdmin client:load />
+  </div>
+</BaseLayout>

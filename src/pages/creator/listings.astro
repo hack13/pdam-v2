@@ -1,0 +1,49 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CreatorNav from '../../components/CreatorNav.astro';
+import { ListingManager } from '../../components/ListingManager';
+import { getCreatorUserFromContext, getLinkedCreator } from '../../lib/creator';
+import { getCreatorListings } from '../../lib/creator-stats';
+
+const user = await getCreatorUserFromContext(Astro);
+if (!user) {
+  return Astro.redirect('/dashboard');
+}
+
+const linked = await getLinkedCreator(user.id);
+const listings = await getCreatorListings(user.id);
+const initialListings = listings.map((l) => ({
+  id: l.id,
+  title: l.title,
+  slug: l.slug,
+  ownershipConfirmations: l.ownershipConfirmations,
+  marketplaceClicks: l.marketplaceClicks,
+  purchaseLinks: l.purchaseLinks.map((p) => ({
+    id: p.id,
+    marketplaceSourceId: p.marketplaceSourceId,
+    productUrl: p.productUrl,
+    label: p.label,
+  })),
+}));
+
+const initialLinkedCreator = linked
+  ? { id: linked.id, name: linked.name, slug: linked.slug }
+  : null;
+---
+
+<BaseLayout title="Creator Listings - PDAM" isAuthenticated={true}>
+  <div class="mx-auto max-w-7xl px-6 py-12">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-white">Content Creator</h1>
+      <p class="mt-1 text-sm text-zinc-400">Manage which of your assets appear in the gallery.</p>
+    </div>
+
+    <CreatorNav current="listings" />
+
+    <ListingManager
+      client:load
+      initialListings={initialListings}
+      initialLinkedCreator={initialLinkedCreator}
+    />
+  </div>
+</BaseLayout>

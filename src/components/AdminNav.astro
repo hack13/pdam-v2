@@ -1,6 +1,6 @@
 ---
 interface Props {
-  current: 'dashboard' | 'users' | 'storage';
+  current: 'dashboard' | 'users' | 'storage' | 'creator-applications';
 }
 
 const { current } = Astro.props;
@@ -28,6 +28,17 @@ const { current } = Astro.props;
     ]}
   >
     User Management
+  </a>
+  <a
+    href="/admin/creator-applications"
+    class:list={[
+      'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+      current === 'creator-applications'
+        ? 'bg-indigo-500/20 text-indigo-300'
+        : 'text-zinc-400 hover:bg-white/5 hover:text-white',
+    ]}
+  >
+    Creator Applications
   </a>
   <a
     href="/admin/storage"

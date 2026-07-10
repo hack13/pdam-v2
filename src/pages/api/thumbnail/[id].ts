@@ -6,11 +6,6 @@ import { getSessionFromContext } from '../../../lib/session';
 import { getThumbnailByKey } from '../../../lib/file-pipeline';
 
 export const GET: APIRoute = async (context) => {
-  const session = await getSessionFromContext(context);
-  if (!session?.user) {
-    return new Response('Unauthorized', { status: 401 });
-  }
-
   const thumbnailId = context.params.id;
   if (!thumbnailId) {
     return new Response('Not found', { status: 404 });
@@ -28,8 +23,16 @@ export const GET: APIRoute = async (context) => {
     where: eq(products.thumbnailFileThumbnailId, thumbnailId),
   });
 
-  if (!product || product.ownerUserId !== session.user.id) {
+  if (!product) {
     return new Response('Forbidden', { status: 403 });
+  }
+
+  // Gallery listings are publicly viewable (including thumbnails).
+  if (!product.isGalleryListed) {
+    const session = await getSessionFromContext(context);
+    if (!session?.user || product.ownerUserId !== session.user.id) {
+      return new Response('Forbidden', { status: 403 });
+    }
   }
 
   const data = await getThumbnailByKey(thumbnail.storageKey);
@@ -38,10 +41,10 @@ export const GET: APIRoute = async (context) => {
   }
 
   return new Response(new Uint8Array(data), {
+    status: 200,
     headers: {
-      'Content-Type': thumbnail.mimeType,
-      'Content-Length': String(data.length),
-      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Content-Type': 'image/webp',
+      'Cache-Control': 'public, max-age=86400',
     },
   });
 };

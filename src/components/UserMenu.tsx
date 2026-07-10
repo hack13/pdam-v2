@@ -6,9 +6,18 @@ interface Props {
   userImage: string;
   fallbackAvatarUrl: string;
   isAdmin: boolean;
+  isCreator?: boolean;
+  showCreatorApply?: boolean;
 }
 
-export function UserMenu({ userName, userImage, fallbackAvatarUrl, isAdmin }: Props) {
+export function UserMenu({
+  userName,
+  userImage,
+  fallbackAvatarUrl,
+  isAdmin,
+  isCreator = false,
+  showCreatorApply = false,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -82,6 +91,21 @@ export function UserMenu({ userName, userImage, fallbackAvatarUrl, isAdmin }: Pr
           <a href="/dashboard" role="menuitem" className={linkClass} onClick={() => setOpen(false)}>
             Account
           </a>
+          {isCreator && (
+            <a href="/creator" role="menuitem" className={linkClass} onClick={() => setOpen(false)}>
+              Creator
+            </a>
+          )}
+          {!isCreator && showCreatorApply && (
+            <a
+              href="/creator/apply"
+              role="menuitem"
+              className={linkClass}
+              onClick={() => setOpen(false)}
+            >
+              Become a creator
+            </a>
+          )}
           {isAdmin && (
             <a href="/admin" role="menuitem" className={linkClass} onClick={() => setOpen(false)}>
               Admin

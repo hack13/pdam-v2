@@ -93,9 +93,9 @@ export const PUT: APIRoute = async (context) => {
     updates.email = email;
   }
 
-  if (body.role !== undefined) {
-    if (body.role !== 'user' && body.role !== 'admin') {
-      return jsonError('Role must be "user" or "admin"');
+    if (body.role !== undefined) {
+    if (body.role !== 'user' && body.role !== 'admin' && body.role !== 'creator') {
+      return jsonError('Role must be "user", "creator", or "admin"');
     }
     updates.role = body.role;
   }

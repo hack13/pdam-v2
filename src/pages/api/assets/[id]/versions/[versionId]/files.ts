@@ -100,6 +100,10 @@ export const POST: APIRoute = async (context) => {
     return jsonError('Asset not found', 404);
   }
 
+  if (product.sourceProductId) {
+    return jsonError('Linked copies cannot be modified — sync updates from the creator instead', 403);
+  }
+
   const version = await db.query.productVersions.findFirst({
     where: and(
       eq(productVersions.id, versionId),
@@ -173,6 +177,10 @@ export const DELETE: APIRoute = async (context) => {
 
   if (!product || product.ownerUserId !== auth.user.id) {
     return jsonError('Asset not found', 404);
+  }
+
+  if (product.sourceProductId) {
+    return jsonError('Linked copies cannot be modified — sync updates from the creator instead', 403);
   }
 
   const version = await db.query.productVersions.findFirst({

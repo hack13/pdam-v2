@@ -151,6 +151,10 @@ export const PUT: APIRoute = async (context) => {
     return jsonError('Not found', 404);
   }
 
+  if (product.sourceProductId) {
+    return jsonError('Linked copies cannot be edited — sync updates from the creator instead', 403);
+  }
+
   let body: {
     title?: string;
     description?: string;
