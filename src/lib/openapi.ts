@@ -241,6 +241,35 @@ export function buildOpenApiSpec(serverUrl: string) {
             },
           },
         },
+        MultipartUploadInitiate: {
+          type: 'object',
+          required: ['sha256', 'fileName', 'fileSize'],
+          properties: {
+            sha256: { type: 'string', description: 'Lowercase hex SHA-256 of file contents.' },
+            fileName: { type: 'string' },
+            mimeType: { type: 'string' },
+            fileSize: { type: 'integer' },
+          },
+        },
+        MultipartUploadSession: {
+          type: 'object',
+          properties: {
+            sessionId: { type: 'string', format: 'uuid' },
+            partSize: { type: 'integer' },
+            totalParts: { type: 'integer' },
+            completedParts: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  partNumber: { type: 'integer' },
+                  etag: { type: 'string' },
+                },
+              },
+            },
+            expiresAt: { type: 'string', format: 'date-time' },
+          },
+        },
       },
       responses: {
         Unauthorized: {
@@ -547,7 +576,8 @@ export function buildOpenApiSpec(serverUrl: string) {
           tags: ['Library'],
           summary: 'Upload file to asset version',
           description:
-            'Uploads a file (multipart/form-data, field name `file`, max 512MB) to an asset version.',
+            'Uploads a file (multipart/form-data, field name `file`) to an asset version. ' +
+            'For S3-backed storage, prefer the multipart upload endpoints under `/files/uploads` for large files.',
           requestBody: {
             required: true,
             content: {
@@ -635,6 +665,168 @@ export function buildOpenApiSpec(serverUrl: string) {
             '400': { $ref: '#/components/responses/BadRequest' },
             '401': { $ref: '#/components/responses/Unauthorized' },
             '404': { $ref: '#/components/responses/NotFound' },
+          },
+        },
+      },
+      '/api/assets/{id}/versions/{versionId}/files/uploads/initiate': {
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'versionId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        post: {
+          tags: ['Library'],
+          summary: 'Initiate multipart upload',
+          description:
+            'Starts a direct-to-S3 multipart upload. Client must compute SHA-256 first. ' +
+            'Returns an existing blob immediately when content is already stored (deduplicated).',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/MultipartUploadInitiate' },
+              },
+            },
+          },
+          responses: {
+            '201': {
+              description: 'Upload session created.',
+              content: {
+                'application/json': { schema: { $ref: '#/components/schemas/MultipartUploadSession' } },
+              },
+            },
+            '200': {
+              description: 'Deduplicated blob linked to version.',
+              content: {
+                'application/json': { schema: { $ref: '#/components/schemas/FileUploadResult' } },
+              },
+            },
+            '501': { description: 'S3 storage not configured; use POST /files instead.' },
+          },
+        },
+      },
+      '/api/assets/{id}/versions/{versionId}/files/uploads/{sessionId}': {
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'versionId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'sessionId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        get: {
+          tags: ['Library'],
+          summary: 'Get multipart upload session status',
+          responses: {
+            '200': {
+              description: 'Session status including completed parts for resume.',
+              content: {
+                'application/json': { schema: { $ref: '#/components/schemas/MultipartUploadSession' } },
+              },
+            },
+          },
+        },
+        delete: {
+          tags: ['Library'],
+          summary: 'Abort multipart upload session',
+          responses: {
+            '200': {
+              description: 'Session aborted.',
+              content: {
+                'application/json': {
+                  schema: { type: 'object', properties: { success: { type: 'boolean' } } },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/assets/{id}/versions/{versionId}/files/uploads/{sessionId}/parts': {
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'versionId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'sessionId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        post: {
+          tags: ['Library'],
+          summary: 'Presign multipart upload parts',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['partNumbers'],
+                  properties: {
+                    partNumbers: { type: 'array', items: { type: 'integer' } },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            '200': { description: 'Presigned PUT URLs for requested parts.' },
+          },
+        },
+        put: {
+          tags: ['Library'],
+          summary: 'Report completed upload part',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['partNumber', 'etag'],
+                  properties: {
+                    partNumber: { type: 'integer' },
+                    etag: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            '200': { description: 'Part recorded for resume tracking.' },
+          },
+        },
+      },
+      '/api/assets/{id}/versions/{versionId}/files/uploads/{sessionId}/complete': {
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'versionId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'sessionId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        post: {
+          tags: ['Library'],
+          summary: 'Complete multipart upload',
+          description: 'Assembles parts on S3, verifies SHA-256, and links the file to the version.',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['parts'],
+                  properties: {
+                    parts: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          partNumber: { type: 'integer' },
+                          etag: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            '200': {
+              description: 'Upload completed.',
+              content: {
+                'application/json': { schema: { $ref: '#/components/schemas/FileUploadResult' } },
+              },
+            },
           },
         },
       },

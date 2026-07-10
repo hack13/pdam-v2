@@ -7,6 +7,7 @@ import { storeFile, getFileByBlobId } from '../../../../../../lib/file-pipeline'
 import { updateStorageAccounting } from '../../../../../../lib/storage-accounting';
 import { cleanupUnreferencedBlobs } from '../../../../../../lib/blob-cleanup';
 import { storage } from '../../../../../../lib/storage';
+import { getMaxUploadBytes } from '../../../../../../lib/upload-config';
 
 export const GET: APIRoute = async (context) => {
   const auth = await requireAuth(context);
@@ -121,8 +122,8 @@ export const POST: APIRoute = async (context) => {
     return jsonError('File is empty');
   }
 
-  if (file.size > 512 * 1024 * 1024) {
-    return jsonError('File must be under 512MB');
+  if (file.size > getMaxUploadBytes()) {
+    return jsonError(`File must be under ${getMaxUploadBytes()} bytes`);
   }
 
   const data = Buffer.from(await file.arrayBuffer());

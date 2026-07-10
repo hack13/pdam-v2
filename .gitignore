@@ -27,8 +27,8 @@ logs
 # Drizzle
 drizzle/
 
-# Uploads
-uploads/
+# Local file storage (root uploads directory only)
+/uploads/
 
 # Test scripts
 scripts/test-*.mjs

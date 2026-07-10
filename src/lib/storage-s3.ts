@@ -4,9 +4,14 @@ import {
   GetObjectCommand,
   HeadObjectCommand,
   DeleteObjectCommand,
+  CreateMultipartUploadCommand,
+  UploadPartCommand,
+  CompleteMultipartUploadCommand,
+  AbortMultipartUploadCommand,
+  ListPartsCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import type { StorageProvider } from './storage';
+import type { MultipartPart, StorageProvider } from './storage';
 
 export interface S3StorageConfig {
   endpoint: string;
@@ -23,6 +28,7 @@ export class S3StorageProvider implements StorageProvider {
   private readonly bucket: string;
   private readonly publicUrlPrefix: string;
   readonly identifier: string;
+  readonly supportsMultipartUpload = true;
 
   constructor(config: S3StorageConfig) {
     this.bucket = config.bucket;
@@ -64,6 +70,14 @@ export class S3StorageProvider implements StorageProvider {
   }
 
   async get(key: string): Promise<Buffer> {
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of await this.getObjectStream(key)) {
+      chunks.push(chunk);
+    }
+    return Buffer.concat(chunks);
+  }
+
+  async getObjectStream(key: string): Promise<AsyncIterable<Uint8Array>> {
     const response = await this.client.send(
       new GetObjectCommand({
         Bucket: this.bucket,
@@ -75,12 +89,7 @@ export class S3StorageProvider implements StorageProvider {
       throw new Error(`S3 object not found: ${key}`);
     }
 
-    const chunks: Uint8Array[] = [];
-    const stream = response.Body as AsyncIterable<Uint8Array>;
-    for await (const chunk of stream) {
-      chunks.push(chunk);
-    }
-    return Buffer.concat(chunks);
+    return response.Body as AsyncIterable<Uint8Array>;
   }
 
   async delete(key: string): Promise<void> {
@@ -103,6 +112,94 @@ export class S3StorageProvider implements StorageProvider {
       ...(options?.contentDisposition && { ResponseContentDisposition: options.contentDisposition }),
     });
     return await getSignedUrl(this.client, command, { expiresIn: options?.expiresInSeconds ?? 3600 });
+  }
+
+  async createMultipartUpload(key: string): Promise<string> {
+    const response = await this.client.send(
+      new CreateMultipartUploadCommand({
+        Bucket: this.bucket,
+        Key: key,
+      }),
+    );
+
+    if (!response.UploadId) {
+      throw new Error('Failed to create multipart upload');
+    }
+
+    return response.UploadId;
+  }
+
+  async getPresignedPartUrl(
+    key: string,
+    uploadId: string,
+    partNumber: number,
+    options?: { expiresInSeconds?: number },
+  ): Promise<string> {
+    const command = new UploadPartCommand({
+      Bucket: this.bucket,
+      Key: key,
+      UploadId: uploadId,
+      PartNumber: partNumber,
+    });
+    return await getSignedUrl(this.client, command, { expiresIn: options?.expiresInSeconds ?? 3600 });
+  }
+
+  async completeMultipartUpload(key: string, uploadId: string, parts: MultipartPart[]): Promise<void> {
+    await this.client.send(
+      new CompleteMultipartUploadCommand({
+        Bucket: this.bucket,
+        Key: key,
+        UploadId: uploadId,
+        MultipartUpload: {
+          Parts: [...parts]
+            .sort((a, b) => a.partNumber - b.partNumber)
+            .map((part) => ({
+              PartNumber: part.partNumber,
+              ETag: part.etag,
+            })),
+        },
+      }),
+    );
+  }
+
+  async abortMultipartUpload(key: string, uploadId: string): Promise<void> {
+    await this.client.send(
+      new AbortMultipartUploadCommand({
+        Bucket: this.bucket,
+        Key: key,
+        UploadId: uploadId,
+      }),
+    );
+  }
+
+  async listParts(key: string, uploadId: string): Promise<MultipartPart[]> {
+    const parts: MultipartPart[] = [];
+    let partNumberMarker: string | undefined;
+
+    do {
+      const response = await this.client.send(
+        new ListPartsCommand({
+          Bucket: this.bucket,
+          Key: key,
+          UploadId: uploadId,
+          PartNumberMarker: partNumberMarker,
+        }),
+      );
+
+      for (const part of response.Parts ?? []) {
+        if (part.PartNumber && part.ETag) {
+          parts.push({
+            partNumber: part.PartNumber,
+            etag: part.ETag,
+          });
+        }
+      }
+
+      if (!response.IsTruncated) break;
+      partNumberMarker = response.NextPartNumberMarker;
+    } while (partNumberMarker);
+
+    return parts;
   }
 
   async exists(key: string): Promise<boolean> {

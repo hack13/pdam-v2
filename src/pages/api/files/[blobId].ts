@@ -1,9 +1,9 @@
 import type { APIRoute } from 'astro';
 import { eq, and } from 'drizzle-orm';
-import { db } from '../../../../db';
-import { userAssetFiles, globalFileBlobs, blobStorageObjects } from '../../../../db/schema';
-import { requireAuth } from '../../../../lib/api-helpers';
-import { getFileByBlobId } from '../../../../lib/file-pipeline';
+import { db } from '../../../db';
+import { userAssetFiles, globalFileBlobs, blobStorageObjects } from '../../../db/schema';
+import { requireAuth } from '../../../lib/api-helpers';
+import { getFileByBlobId } from '../../../lib/file-pipeline';
 
 export const GET: APIRoute = async (context) => {
   const auth = await requireAuth(context);

@@ -1,5 +1,6 @@
 import { useState, useRef, type ChangeEvent, type DragEvent } from 'react';
 import { ConfirmDialog } from './ConfirmDialog';
+import { uploadFile, type UploadProgress } from '../lib/multipart-upload';
 
 interface Props {
   productId: string;
@@ -15,9 +16,20 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
+function formatProgress(progress: UploadProgress): string {
+  const pct = progress.total > 0 ? Math.round((progress.bytes / progress.total) * 100) : 0;
+  if (progress.phase === 'hashing') {
+    return `Computing hash… ${pct}%`;
+  }
+  if (progress.phase === 'completing') {
+    return 'Finalizing upload…';
+  }
+  return `Uploading… ${pct}% (${formatSize(progress.bytes)} / ${formatSize(progress.total)})`;
+}
+
 export function FileUploader({ productId, versionId, existingFiles, onFilesUploaded }: Props) {
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
+  const [progress, setProgress] = useState<{ current: number; total: number; detail?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -60,17 +72,31 @@ export function FileUploader({ productId, versionId, existingFiles, onFilesUploa
 
     try {
       for (let i = 0; i < fileArray.length; i++) {
-        const form = new FormData();
-        form.append('file', fileArray[i]);
-        const res = await fetch(`/api/assets/${productId}/versions/${versionId}/files`, {
-          method: 'POST',
-          body: form,
+        const file = fileArray[i];
+        setProgress({
+          current: i,
+          total: fileArray.length,
+          detail: `Preparing ${file.name}…`,
         });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error((data as { error?: string }).error ?? `Failed to upload ${fileArray[i].name}`);
-        }
-        setProgress({ current: i + 1, total: fileArray.length });
+
+        await uploadFile({
+          file,
+          productId,
+          versionId,
+          onProgress: (uploadProgress) => {
+            setProgress({
+              current: i,
+              total: fileArray.length,
+              detail: `${file.name}: ${formatProgress(uploadProgress)}`,
+            });
+          },
+        });
+
+        setProgress({
+          current: i + 1,
+          total: fileArray.length,
+          detail: undefined,
+        });
       }
       if (inputRef.current) inputRef.current.value = '';
       onFilesUploaded();
@@ -178,7 +204,9 @@ export function FileUploader({ productId, versionId, existingFiles, onFilesUploa
         }`}
       >
         {uploading && progress ? (
-          <span>Uploading {progress.current}/{progress.total} file(s)...</span>
+          <span className="text-center">
+            {progress.detail ?? `Uploading ${progress.current + 1}/${progress.total} file(s)…`}
+          </span>
         ) : (
           <span>Drop files here or click to upload</span>
         )}

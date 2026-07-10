@@ -32,7 +32,7 @@ function computeSha256(data: Buffer): string {
   return createHash('sha256').update(data).digest('hex');
 }
 
-function computeShardedBlobKey(sha256: string): string {
+export function computeShardedBlobKey(sha256: string): string {
   return `blobs/${sha256.slice(0, 2)}/${sha256.slice(2, 4)}/${sha256}`;
 }
 
@@ -49,6 +49,22 @@ function isOldThumbnailKey(key: string): boolean {
   return !afterPrefix.includes('/') && afterPrefix.endsWith('.webp');
 }
 
+export async function findBlobBySha256(sha256: string): Promise<StoredBlob | null> {
+  const existing = await db.query.globalFileBlobs.findFirst({
+    where: eq(globalFileBlobs.sha256, sha256),
+  });
+
+  if (!existing) return null;
+
+  return {
+    id: existing.id,
+    sha256: existing.sha256,
+    fileName: existing.fileName,
+    mimeType: existing.mimeType,
+    fileSize: existing.fileSize,
+  };
+}
+
 export async function storeFile(
   data: Buffer,
   fileName: string,
@@ -56,19 +72,10 @@ export async function storeFile(
 ): Promise<StoreFileResult> {
   const sha256 = computeSha256(data);
 
-  const existing = await db.query.globalFileBlobs.findFirst({
-    where: eq(globalFileBlobs.sha256, sha256),
-  });
-
+  const existing = await findBlobBySha256(sha256);
   if (existing) {
     return {
-      blob: {
-        id: existing.id,
-        sha256: existing.sha256,
-        fileName: existing.fileName,
-        mimeType: existing.mimeType,
-        fileSize: existing.fileSize,
-      },
+      blob: existing,
       deduplicated: true,
       isNew: false,
     };
@@ -106,6 +113,71 @@ export async function storeFile(
     deduplicated: false,
     isNew: true,
   };
+}
+
+export async function finalizeBlobFromStorage(
+  sha256: string,
+  fileName: string,
+  mimeType: string,
+  fileSize: number,
+): Promise<StoreFileResult> {
+  const existing = await findBlobBySha256(sha256);
+  if (existing) {
+    return {
+      blob: existing,
+      deduplicated: true,
+      isNew: false,
+    };
+  }
+
+  const storageKey = computeShardedBlobKey(sha256);
+  const objectExists = await storage.exists(storageKey);
+  if (!objectExists) {
+    throw new Error('Uploaded object not found in storage');
+  }
+
+  const blobId = randomUUID();
+
+  const [blob] = await db.insert(globalFileBlobs).values({
+    id: blobId,
+    sha256,
+    fileName,
+    mimeType,
+    fileSize,
+  }).returning();
+
+  await db.insert(blobStorageObjects).values({
+    blobId,
+    storageProviderType: storage.providerType,
+    storageKey,
+    bucketName: storage.identifier,
+    physicalSizeBytes: fileSize,
+  });
+
+  return {
+    blob: {
+      id: blob.id,
+      sha256: blob.sha256,
+      fileName: blob.fileName,
+      mimeType: blob.mimeType,
+      fileSize: blob.fileSize,
+    },
+    deduplicated: false,
+    isNew: true,
+  };
+}
+
+export async function verifySha256FromStorage(storageKey: string, expectedSha256: string): Promise<boolean> {
+  if (!storage.getObjectStream) {
+    throw new Error('Storage provider does not support streaming reads');
+  }
+
+  const hash = createHash('sha256');
+  for await (const chunk of await storage.getObjectStream(storageKey)) {
+    hash.update(chunk);
+  }
+
+  return hash.digest('hex').toLowerCase() === expectedSha256.toLowerCase();
 }
 
 export async function generateAndStoreThumbnail(

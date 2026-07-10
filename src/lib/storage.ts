@@ -1,6 +1,11 @@
 import { LocalStorageProvider } from './storage-local';
 import { S3StorageProvider } from './storage-s3';
 
+export interface MultipartPart {
+  partNumber: number;
+  etag: string;
+}
+
 export interface StorageProvider {
   put(key: string, data: Buffer | Uint8Array): Promise<string>;
   get(key: string): Promise<Buffer>;
@@ -11,6 +16,18 @@ export interface StorageProvider {
   readonly providerType: string;
   /** Returns a human-readable identifier (e.g. bucket name or local path) */
   readonly identifier: string;
+  readonly supportsMultipartUpload: boolean;
+  createMultipartUpload?(key: string): Promise<string>;
+  getPresignedPartUrl?(
+    key: string,
+    uploadId: string,
+    partNumber: number,
+    options?: { expiresInSeconds?: number },
+  ): Promise<string>;
+  completeMultipartUpload?(key: string, uploadId: string, parts: MultipartPart[]): Promise<void>;
+  abortMultipartUpload?(key: string, uploadId: string): Promise<void>;
+  listParts?(key: string, uploadId: string): Promise<MultipartPart[]>;
+  getObjectStream?(key: string): Promise<AsyncIterable<Uint8Array>>;
 }
 
 function getEnv(name: string): string | undefined {

@@ -9,6 +9,7 @@ import type { StorageProvider } from './storage';
 export class LocalStorageProvider implements StorageProvider {
   private readonly basePath: string;
   readonly identifier: string;
+  readonly supportsMultipartUpload = false;
 
   constructor(basePath: string) {
     this.basePath = basePath;
