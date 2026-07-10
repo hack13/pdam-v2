@@ -14,6 +14,10 @@ import {
 } from '../../../../lib/verification-webhook';
 import { decryptWebhookSecret } from '../../../../lib/webhook-secrets';
 import {
+  checkVerificationRateLimit,
+  clearVerificationRateLimit,
+} from '../../../../lib/verification-rate-limit';
+import {
   createLinkedCopy,
   recordVerifiedOwnership,
 } from '../../../../lib/linked-copy';
@@ -77,6 +81,18 @@ export const POST: APIRoute = async (context) => {
     );
   }
 
+  const rateLimit = await checkVerificationRateLimit(
+    context,
+    auth.user.id,
+    productId,
+    body.marketplaceSourceId,
+  );
+  if (!rateLimit.allowed) {
+    const response = jsonError('Too many verification attempts. Please try again later.', 429);
+    if (rateLimit.retryAfterSeconds) response.headers.set('Retry-After', String(rateLimit.retryAfterSeconds));
+    return response;
+  }
+
   const licenseKey = body.licenseKey.trim();
   const now = new Date();
 
@@ -129,7 +145,7 @@ export const POST: APIRoute = async (context) => {
       });
     }
 
-    return jsonError(result.reason ?? 'License could not be verified', 403);
+    return jsonError('License key could not be verified', 403);
   }
 
   try {
@@ -149,6 +165,12 @@ export const POST: APIRoute = async (context) => {
       linkedProductId,
       externalPurchaseId: result.externalPurchaseId ?? null,
     });
+
+    await clearVerificationRateLimit(
+      auth.user.id,
+      productId,
+      body.marketplaceSourceId,
+    );
 
     return json({
       verified: true,

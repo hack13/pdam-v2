@@ -5,6 +5,7 @@ interface ImportMetaEnv {
   readonly BETTER_AUTH_URL?: string;
   readonly BETTER_AUTH_SECRET?: string;
   readonly WEBHOOK_SECRET_ENCRYPTION_KEY?: string;
+  readonly TRUST_PROXY?: 'true' | 'false';
   readonly S3_ENDPOINT?: string;
   readonly S3_REGION?: string;
   readonly S3_BUCKET?: string;
