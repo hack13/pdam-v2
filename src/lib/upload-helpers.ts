@@ -67,12 +67,12 @@ export async function linkBlobToVersion(
   };
 }
 
-export function parseJsonBody<T extends Record<string, unknown>>(body: unknown): T | null {
+export function parseJsonBody<T extends object>(body: unknown): T | null {
   if (!body || typeof body !== 'object') return null;
   return body as T;
 }
 
-export async function readJsonBody<T extends Record<string, unknown>>(context: APIContext): Promise<T | Response> {
+export async function readJsonBody<T extends object>(context: APIContext): Promise<T | Response> {
   try {
     const body = await context.request.json();
     const parsed = parseJsonBody<T>(body);

@@ -6,6 +6,7 @@ import { requireAuth, json, jsonError } from '../../../../../../../../../lib/api
 import {
   finalizeBlobFromStorage,
   findBlobBySha256,
+  isPendingUploadKey,
   verifySha256FromStorage,
 } from '../../../../../../../../../lib/file-pipeline';
 import { storage } from '../../../../../../../../../lib/storage';
@@ -54,6 +55,18 @@ export const POST: APIRoute = async (context) => {
     return jsonError('Upload session has expired', 410);
   }
 
+  // Do not complete sessions created before uploads were isolated in staging.
+  // Those sessions target a shared content-addressed object and are unsafe.
+  if (!isPendingUploadKey(session.storageKey)) {
+    if (storage.abortMultipartUpload) {
+      await storage.abortMultipartUpload(session.storageKey, session.s3UploadId).catch(() => {});
+    }
+    await db.update(pendingUploads)
+      .set({ status: 'aborted' })
+      .where(eq(pendingUploads.id, session.id));
+    return jsonError('Upload session must be restarted', 409);
+  }
+
   const body = await readJsonBody<CompleteBody>(context);
   if (body instanceof Response) return body;
 
@@ -90,38 +103,6 @@ export const POST: APIRoute = async (context) => {
     .set({ status: 'completing', completedParts: normalizedParts })
     .where(eq(pendingUploads.id, session.id));
 
-  const existingBlob = await findBlobBySha256(session.sha256);
-  if (existingBlob) {
-    if (storage.abortMultipartUpload) {
-      try {
-        await storage.abortMultipartUpload(session.storageKey, session.s3UploadId);
-      } catch {
-        // Object may already exist at the content-addressed key.
-      }
-    }
-
-    const linked = await linkBlobToVersion(
-      auth.user.id,
-      versionId,
-      existingBlob,
-      session.fileSize,
-      false,
-    );
-
-    await db.update(pendingUploads)
-      .set({ status: 'completed' })
-      .where(eq(pendingUploads.id, session.id));
-
-    return json({
-      success: true,
-      deduplicated: true,
-      file: {
-        ...existingBlob,
-        userAssetFileId: linked.id,
-      },
-    });
-  }
-
   try {
     if (!storage.completeMultipartUpload) {
       return jsonError('Multipart upload is not available', 501);
@@ -133,13 +114,35 @@ export const POST: APIRoute = async (context) => {
       normalizedParts,
     );
 
-    const hashValid = await verifySha256FromStorage(session.storageKey, session.sha256);
-    if (!hashValid) {
+    const verification = await verifySha256FromStorage(session.storageKey, session.sha256);
+    if (!verification.hashValid || verification.byteLength !== session.fileSize) {
       await storage.delete(session.storageKey).catch(() => {});
       await db.update(pendingUploads)
         .set({ status: 'aborted' })
         .where(eq(pendingUploads.id, session.id));
-      return jsonError('Uploaded file hash does not match expected sha256', 422);
+      return jsonError('Uploaded file does not match the declared hash and size', 422);
+    }
+
+    // A matching blob can now be reused: the caller has demonstrated
+    // possession by uploading and server-verifying the exact bytes.
+    const existingBlob = await findBlobBySha256(session.sha256);
+    if (existingBlob) {
+      await storage.delete(session.storageKey).catch(() => {});
+      const linked = await linkBlobToVersion(
+        auth.user.id,
+        versionId,
+        existingBlob,
+        session.fileSize,
+        false,
+      );
+      await db.update(pendingUploads)
+        .set({ status: 'completed' })
+        .where(eq(pendingUploads.id, session.id));
+      return json({
+        success: true,
+        deduplicated: true,
+        file: { ...existingBlob, userAssetFileId: linked.id },
+      });
     }
 
     const result = await finalizeBlobFromStorage(
@@ -147,7 +150,14 @@ export const POST: APIRoute = async (context) => {
       session.fileName,
       session.mimeType,
       session.fileSize,
+      session.storageKey,
     );
+
+    // Another verified upload may have completed between the lookup above and
+    // the insert. Its staging object is no longer needed in that case.
+    if (result.deduplicated) {
+      await storage.delete(session.storageKey).catch(() => {});
+    }
 
     const linked = await linkBlobToVersion(
       auth.user.id,

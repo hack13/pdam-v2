@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { eq, and } from 'drizzle-orm';
 import { db } from '../../../db';
-import { userAssetFiles, globalFileBlobs, blobStorageObjects } from '../../../db/schema';
+import { userAssetFiles, globalFileBlobs } from '../../../db/schema';
 import { requireAuth } from '../../../lib/api-helpers';
 import { getFileByBlobId } from '../../../lib/file-pipeline';
 
@@ -48,13 +48,15 @@ export const GET: APIRoute = async (context) => {
     return new Response('File data not found', { status: 404 });
   }
 
-  return new Response(file.data, {
+  return new Response(new Uint8Array(file.data), {
     status: 200,
     headers: {
       'Content-Type': file.mimeType,
       'Content-Length': String(file.data.length),
       'Content-Disposition': `attachment; filename="${file.fileName}"`,
-      'Cache-Control': 'public, max-age=31536000, immutable',
+      // This endpoint is authorization-gated; shared caches must never replay
+      // a file response to another user who knows the blob ID.
+      'Cache-Control': 'private, no-store',
       'ETag': etag,
       'Last-Modified': lastModified,
     },

@@ -36,6 +36,19 @@ export function computeShardedBlobKey(sha256: string): string {
   return `blobs/${sha256.slice(0, 2)}/${sha256.slice(2, 4)}/${sha256}`;
 }
 
+/**
+ * Multipart uploads must never write directly to a content-addressed blob key.
+ * Until the server has verified the uploaded bytes, the client-provided digest
+ * is untrusted and must not grant access to an existing blob.
+ */
+export function computePendingUploadKey(sessionId: string): string {
+  return `pending-uploads/${sessionId}`;
+}
+
+export function isPendingUploadKey(storageKey: string): boolean {
+  return storageKey.startsWith('pending-uploads/');
+}
+
 function computeShardedThumbnailKey(blobSha256: string, blobId: string): string {
   return `thumbnails/${blobSha256.slice(0, 2)}/${blobSha256.slice(2, 4)}/${blobId}.webp`;
 }
@@ -120,6 +133,7 @@ export async function finalizeBlobFromStorage(
   fileName: string,
   mimeType: string,
   fileSize: number,
+  storageKey: string,
 ): Promise<StoreFileResult> {
   const existing = await findBlobBySha256(sha256);
   if (existing) {
@@ -130,7 +144,6 @@ export async function finalizeBlobFromStorage(
     };
   }
 
-  const storageKey = computeShardedBlobKey(sha256);
   const objectExists = await storage.exists(storageKey);
   if (!objectExists) {
     throw new Error('Uploaded object not found in storage');
@@ -167,17 +180,25 @@ export async function finalizeBlobFromStorage(
   };
 }
 
-export async function verifySha256FromStorage(storageKey: string, expectedSha256: string): Promise<boolean> {
+export async function verifySha256FromStorage(
+  storageKey: string,
+  expectedSha256: string,
+): Promise<{ hashValid: boolean; byteLength: number }> {
   if (!storage.getObjectStream) {
     throw new Error('Storage provider does not support streaming reads');
   }
 
   const hash = createHash('sha256');
+  let byteLength = 0;
   for await (const chunk of await storage.getObjectStream(storageKey)) {
     hash.update(chunk);
+    byteLength += chunk.byteLength;
   }
 
-  return hash.digest('hex').toLowerCase() === expectedSha256.toLowerCase();
+  return {
+    hashValid: hash.digest('hex').toLowerCase() === expectedSha256.toLowerCase(),
+    byteLength,
+  };
 }
 
 export async function generateAndStoreThumbnail(

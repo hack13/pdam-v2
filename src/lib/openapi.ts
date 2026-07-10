@@ -678,7 +678,7 @@ export function buildOpenApiSpec(serverUrl: string) {
           summary: 'Initiate multipart upload',
           description:
             'Starts a direct-to-S3 multipart upload. Client must compute SHA-256 first. ' +
-            'Returns an existing blob immediately when content is already stored (deduplicated).',
+            'The server verifies uploaded bytes before deduplicating or granting file access.',
           requestBody: {
             required: true,
             content: {
@@ -692,12 +692,6 @@ export function buildOpenApiSpec(serverUrl: string) {
               description: 'Upload session created.',
               content: {
                 'application/json': { schema: { $ref: '#/components/schemas/MultipartUploadSession' } },
-              },
-            },
-            '200': {
-              description: 'Deduplicated blob linked to version.',
-              content: {
-                'application/json': { schema: { $ref: '#/components/schemas/FileUploadResult' } },
               },
             },
             '501': { description: 'S3 storage not configured; use POST /files instead.' },

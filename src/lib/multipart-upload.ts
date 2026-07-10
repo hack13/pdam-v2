@@ -22,12 +22,10 @@ interface CompletedPart {
 
 interface InitiateResponse {
   multipartAvailable?: boolean;
-  deduplicated?: boolean;
   sessionId?: string;
   partSize?: number;
   totalParts?: number;
   completedParts?: CompletedPart[];
-  file?: UploadedFileResult;
   message?: string;
 }
 
@@ -140,11 +138,6 @@ export async function uploadFileViaMultipart(params: {
 
   const initiate = await initiateResponse.json() as InitiateResponse;
 
-  if (initiate.deduplicated && initiate.file) {
-    sessionStorage.removeItem(sessionStorageKey(productId, versionId, sha256));
-    return initiate.file;
-  }
-
   const sessionId = initiate.sessionId;
   const partSize = initiate.partSize;
   const totalParts = initiate.totalParts;
@@ -152,6 +145,7 @@ export async function uploadFileViaMultipart(params: {
   if (!sessionId || !partSize || !totalParts) {
     throw new Error('Invalid initiate response');
   }
+  const requiredPartSize = partSize;
 
   sessionStorage.setItem(sessionStorageKey(productId, versionId, sha256), sessionId);
 
@@ -167,8 +161,8 @@ export async function uploadFileViaMultipart(params: {
   }
 
   let uploadedBytes = Array.from(completedParts.keys()).reduce((sum, partNumber) => {
-    const start = (partNumber - 1) * partSize;
-    const end = Math.min(start + partSize, file.size);
+    const start = (partNumber - 1) * requiredPartSize;
+    const end = Math.min(start + requiredPartSize, file.size);
     return sum + (end - start);
   }, 0);
 
@@ -188,8 +182,8 @@ export async function uploadFileViaMultipart(params: {
   }
 
   async function uploadPart(partNumber: number): Promise<void> {
-    const start = (partNumber - 1) * partSize;
-    const end = Math.min(start + partSize, file.size);
+    const start = (partNumber - 1) * requiredPartSize;
+    const end = Math.min(start + requiredPartSize, file.size);
     const chunk = file.slice(start, end);
 
     const presignResponse = await fetch(`${base}/${sessionId}/parts`, {

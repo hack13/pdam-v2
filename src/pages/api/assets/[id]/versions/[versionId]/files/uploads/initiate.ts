@@ -1,11 +1,12 @@
 import type { APIRoute } from 'astro';
+import { randomUUID } from 'node:crypto';
 import { eq, and } from 'drizzle-orm';
 import { db } from '../../../../../../../../db';
 import { pendingUploads } from '../../../../../../../../db/schema';
 import { requireAuth, json, jsonError } from '../../../../../../../../lib/api-helpers';
-import { computeShardedBlobKey, findBlobBySha256 } from '../../../../../../../../lib/file-pipeline';
+import { computePendingUploadKey, isPendingUploadKey } from '../../../../../../../../lib/file-pipeline';
 import { storage } from '../../../../../../../../lib/storage';
-import { linkBlobToVersion, readJsonBody, validateVersionAccess } from '../../../../../../../../lib/upload-helpers';
+import { readJsonBody, validateVersionAccess } from '../../../../../../../../lib/upload-helpers';
 import {
   computePartCount,
   getMaxUploadBytes,
@@ -62,26 +63,6 @@ export const POST: APIRoute = async (context) => {
     return jsonError(`File must be under ${maxUploadBytes} bytes`);
   }
 
-  const existingBlob = await findBlobBySha256(sha256);
-  if (existingBlob) {
-    const linked = await linkBlobToVersion(
-      auth.user.id,
-      versionId,
-      existingBlob,
-      fileSize,
-      false,
-    );
-
-    return json({
-      multipartAvailable: true,
-      deduplicated: true,
-      file: {
-        ...existingBlob,
-        userAssetFileId: linked.id,
-      },
-    });
-  }
-
   const activeSession = await db.query.pendingUploads.findFirst({
     where: and(
       eq(pendingUploads.sha256, sha256),
@@ -91,7 +72,7 @@ export const POST: APIRoute = async (context) => {
     ),
   });
 
-  if (activeSession) {
+  if (activeSession && isPendingUploadKey(activeSession.storageKey)) {
     const partSize = getMpuPartSize();
     return json({
       multipartAvailable: true,
@@ -106,13 +87,26 @@ export const POST: APIRoute = async (context) => {
     });
   }
 
-  const storageKey = computeShardedBlobKey(sha256);
+  // Sessions created before per-session staging used a shared blob key. They
+  // cannot safely be resumed because that would preserve the hash oracle.
+  if (activeSession) {
+    if (storage.abortMultipartUpload) {
+      await storage.abortMultipartUpload(activeSession.storageKey, activeSession.s3UploadId).catch(() => {});
+    }
+    await db.update(pendingUploads)
+      .set({ status: 'aborted' })
+      .where(eq(pendingUploads.id, activeSession.id));
+  }
+
+  const sessionId = randomUUID();
+  const storageKey = computePendingUploadKey(sessionId);
   const uploadId = await storage.createMultipartUpload!(storageKey);
 
   const expiresAt = new Date();
   expiresAt.setHours(expiresAt.getHours() + getMpuSessionTtlHours());
 
   const [session] = await db.insert(pendingUploads).values({
+    id: sessionId,
     userId: auth.user.id,
     productVersionId: versionId,
     sha256,
