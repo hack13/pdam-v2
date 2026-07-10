@@ -5,5 +5,6 @@ export * from './creator-applications';
 export * from './gallery';
 export * from './global-storage';
 export * from './marketplace';
+export * from './passkey';
 export * from './pending-uploads';
 export * from './user-assets';

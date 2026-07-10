@@ -3,6 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import { SignOutButton } from '../../components/SignOutButton';
 import { MarketplaceManager } from '../../components/MarketplaceManager';
 import { ApiKeyManager } from '../../components/ApiKeyManager';
+import { PasskeyManager } from '../../components/PasskeyManager';
 import { ProfilePicture } from '../../components/ProfilePicture';
 import { getSessionFromContext } from '../../lib/session';
 import { db } from '../../db';
@@ -134,6 +135,10 @@ const fallbackAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent
           <SignOutButton client:load userName={user.name} />
         </div>
       </div>
+    </div>
+
+    <div class="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">
+      <PasskeyManager client:load />
     </div>
 
     <div class="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">

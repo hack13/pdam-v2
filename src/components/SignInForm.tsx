@@ -1,11 +1,32 @@
-import { useState, type FormEvent } from 'react';
-import { signIn } from '../lib/auth-client';
+import { useEffect, useState, type FormEvent } from 'react';
+import { authClient, signIn } from '../lib/auth-client';
 
 export function SignInForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
+
+  useEffect(() => {
+    const supported =
+      typeof PublicKeyCredential !== 'undefined' &&
+      typeof PublicKeyCredential.isConditionalMediationAvailable === 'function';
+
+    if (!supported) return;
+
+    void PublicKeyCredential.isConditionalMediationAvailable().then((available) => {
+      if (!available) return;
+      void authClient.signIn.passkey({
+        autoFill: true,
+        fetchOptions: {
+          onSuccess() {
+            window.location.href = '/dashboard';
+          },
+        },
+      });
+    });
+  }, []);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -23,6 +44,21 @@ export function SignInForm() {
     window.location.href = '/dashboard';
   }
 
+  async function handlePasskeySignIn() {
+    setError(null);
+    setPasskeyLoading(true);
+
+    const result = await authClient.signIn.passkey();
+
+    if (result.error) {
+      setError(result.error.message ?? 'Passkey sign-in failed. Please try again.');
+      setPasskeyLoading(false);
+      return;
+    }
+
+    window.location.href = '/dashboard';
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
@@ -33,7 +69,7 @@ export function SignInForm() {
           id="email"
           type="email"
           required
-          autoComplete="email"
+          autoComplete="username webauthn"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 outline-none transition-colors focus:border-indigo-500 focus:bg-white/10"
@@ -49,7 +85,7 @@ export function SignInForm() {
           id="password"
           type="password"
           required
-          autoComplete="current-password"
+          autoComplete="current-password webauthn"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 outline-none transition-colors focus:border-indigo-500 focus:bg-white/10"
@@ -65,10 +101,28 @@ export function SignInForm() {
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || passkeyLoading}
         className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
       >
         {loading ? 'Signing in...' : 'Sign In'}
+      </button>
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-white/10" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-zinc-950 px-2 text-zinc-500">or</span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => void handlePasskeySignIn()}
+        disabled={loading || passkeyLoading}
+        className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {passkeyLoading ? 'Waiting for passkey...' : 'Sign in with Passkey'}
       </button>
 
       <p className="text-center text-sm text-zinc-400">

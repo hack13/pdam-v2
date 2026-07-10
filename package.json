@@ -17,6 +17,7 @@
     "db:apply-gallery-creator": "node scripts/apply-gallery-creator-migration.mjs",
     "db:apply-creator-link": "node scripts/apply-creator-link-migration.mjs",
     "db:apply-creator-applications": "node scripts/apply-creator-applications-migration.mjs",
+    "db:apply-passkey": "node scripts/apply-passkey-migration.mjs",
     "uploads:cleanup": "node scripts/cleanup-pending-uploads.mjs",
     "db:studio": "drizzle-kit studio"
   },
@@ -25,6 +26,7 @@
     "@aws-sdk/client-s3": "^3.1079.0",
     "@aws-sdk/s3-request-presigner": "^3.1079.0",
     "@better-auth/api-key": "^1.6.23",
+    "@better-auth/passkey": "^1.6.23",
     "astro": "^7.0.6",
     "better-auth": "^1.6.23",
     "drizzle-orm": "^0.44.0",
