@@ -1,6 +1,6 @@
 import { and, eq, gt, inArray } from 'drizzle-orm';
 import { db } from '../db';
-import { globalFileBlobs, productVersions, products, userAssetFiles } from '../db/schema';
+import { fileThumbnails, globalFileBlobs, productVersions, products, userAssetFiles } from '../db/schema';
 
 export const SYNC_MANIFEST_VERSION = 1;
 
@@ -25,11 +25,17 @@ export async function buildSyncManifest(userId: string, cursor: string | null = 
   });
   const productIds = ownedProducts.map((product) => product.id);
   const versions = productIds.length ? await db.query.productVersions.findMany({ where: inArray(productVersions.productId, productIds) }) : [];
+  const thumbnailIds = ownedProducts.flatMap((product) => product.thumbnailFileThumbnailId ? [product.thumbnailFileThumbnailId] : []);
+  const thumbnails = thumbnailIds.length ? await db.query.fileThumbnails.findMany({ where: inArray(fileThumbnails.id, thumbnailIds) }) : [];
   const versionIds = versions.map((version) => version.id);
   const files = versionIds.length ? await db.query.userAssetFiles.findMany({ where: and(eq(userAssetFiles.userId, userId), inArray(userAssetFiles.productVersionId, versionIds)) }) : [];
-  const blobIds = [...new Set(files.map((file) => file.blobId))];
+  const blobIds = [...new Set([
+    ...files.map((file) => file.blobId),
+    ...thumbnails.map((thumbnail) => thumbnail.blobId),
+  ])];
   const blobs = blobIds.length ? await db.query.globalFileBlobs.findMany({ where: inArray(globalFileBlobs.id, blobIds) }) : [];
   const blobsById = new Map(blobs.map((blob) => [blob.id, blob]));
+  const thumbnailsById = new Map(thumbnails.map((thumbnail) => [thumbnail.id, thumbnail]));
   const versionsByProduct = new Map<string, typeof versions>();
   for (const version of versions) versionsByProduct.set(version.productId, [...(versionsByProduct.get(version.productId) ?? []), version]);
   const filesByVersion = new Map<string, typeof files>();
@@ -42,6 +48,12 @@ export async function buildSyncManifest(userId: string, cursor: string | null = 
     descriptionHtml: product.descriptionHtml,
     descriptionText: product.descriptionText,
     tags: product.tags,
+    licenseKey: product.licenseKey,
+    thumbnailPath: thumbnailsById.has(product.thumbnailFileThumbnailId ?? '') ? `assets/${product.slug}/thumbnail.webp` : null,
+    thumbnail: (() => {
+      const thumbnail = thumbnailsById.get(product.thumbnailFileThumbnailId ?? '');
+      return thumbnail ? { id: thumbnail.id, blobId: thumbnail.blobId, mimeType: thumbnail.mimeType, storageKey: thumbnail.storageKey, downloadUrl: `/api/sync/thumbnails/${thumbnail.id}` } : null;
+    })(),
     updatedAt: product.updatedAt.toISOString(),
     versions: (versionsByProduct.get(product.id) ?? []).map((version) => ({
       id: version.id,

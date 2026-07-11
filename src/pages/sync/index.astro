@@ -6,6 +6,7 @@ import { db } from '../../db';
 import { eq } from 'drizzle-orm';
 import { syncRuns, userAssetFiles, userStorageConnections } from '../../db/schema';
 import { formatBytes } from '../../lib/storage-accounting';
+import { HtmlArchiveExport } from '../../components/HtmlArchiveExport';
 
 const session = await getSessionFromContext(Astro);
 if (!session?.user) return Astro.redirect('/login');
@@ -32,6 +33,8 @@ const failedRuns = recentRuns.filter((run) => run.status === 'failed' || run.sta
       <p class="mt-2 max-w-2xl text-sm text-zinc-400">Your backup control room. Choose where copies live, see what happened, and keep a local copy close at hand.</p>
     </div>
     <SyncNav current="dashboard" />
+
+    <div class="mb-8"><HtmlArchiveExport client:load /></div>
 
     <div class="mb-8 grid gap-4 md:grid-cols-3">
       <div class="rounded-2xl border border-indigo-400/20 bg-gradient-to-br from-indigo-500/15 to-white/[0.03] p-5">

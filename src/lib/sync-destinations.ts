@@ -5,7 +5,7 @@ import { decryptSyncSecret } from './sync-secrets';
 
 export interface SyncDestination {
   testConnection(): Promise<void>;
-  putObject(input: { destinationKey: string; body: Buffer; contentType: string; sha256: string; signal?: AbortSignal }): Promise<{ remoteId?: string; etag?: string }>;
+  putObject(input: { destinationKey: string; body: Buffer; contentType: string; sha256: string; signal?: AbortSignal; overwrite?: boolean }): Promise<{ remoteId?: string; etag?: string }>;
   exists(destinationKey: string): Promise<boolean>;
 }
 
@@ -30,9 +30,9 @@ class S3SyncDestination implements SyncDestination {
     }
   }
   async exists(destinationKey: string) { try { await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: joinPath(this.root, destinationKey) })); return true; } catch { return false; } }
-  async putObject(input: { destinationKey: string; body: Buffer; contentType: string; sha256: string; signal?: AbortSignal }) {
+  async putObject(input: { destinationKey: string; body: Buffer; contentType: string; sha256: string; signal?: AbortSignal; overwrite?: boolean }) {
     const key = joinPath(this.root, input.destinationKey);
-    if (await this.exists(input.destinationKey)) return { remoteId: key };
+    if (!input.overwrite && await this.exists(input.destinationKey)) return { remoteId: key };
     const result = await this.client.send(new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: input.body, ContentType: input.contentType, Metadata: { sha256: input.sha256 } }), { abortSignal: input.signal });
     return { remoteId: key, etag: result.ETag };
   }
@@ -72,13 +72,13 @@ class WebdavSyncDestination implements SyncDestination {
   }
   async testConnection() { const response = await fetch(this.url, { method: 'PROPFIND', headers: this.headers({ Depth: '0' }), redirect: 'error' }); if (!response.ok && response.status !== 207) throw new Error(`WebDAV connection failed (${response.status})`); }
   async exists(key: string) { const response = await fetch(this.target(key), { method: 'HEAD', headers: this.headers(), redirect: 'error' }); return response.ok; }
-  async putObject(input: { destinationKey: string; body: Buffer; contentType: string; sha256: string; signal?: AbortSignal }) {
-    if (await this.exists(input.destinationKey)) return { remoteId: this.target(input.destinationKey).toString() };
+  async putObject(input: { destinationKey: string; body: Buffer; contentType: string; sha256: string; signal?: AbortSignal; overwrite?: boolean }) {
+    if (!input.overwrite && await this.exists(input.destinationKey)) return { remoteId: this.target(input.destinationKey).toString() };
     await this.ensureCollections(input.destinationKey);
     const target = this.target(input.destinationKey);
     let lastStatus = 0;
     for (let attempt = 0; attempt < 3; attempt++) {
-      const response = await fetch(target, { method: 'PUT', headers: this.headers({ 'Content-Type': input.contentType, 'Content-Length': String(input.body.length), 'X-PDAM-SHA256': input.sha256, 'If-None-Match': '*' }), body: new Uint8Array(input.body), redirect: 'error', signal: input.signal });
+      const response = await fetch(target, { method: 'PUT', headers: this.headers({ 'Content-Type': input.contentType, 'Content-Length': String(input.body.length), 'X-PDAM-SHA256': input.sha256, ...(input.overwrite ? {} : { 'If-None-Match': '*' }) }), body: new Uint8Array(input.body), redirect: 'error', signal: input.signal });
       if (response.ok) return { remoteId: target.toString(), etag: response.headers.get('etag') ?? undefined };
       lastStatus = response.status;
       if (![423, 429, 500, 502, 503, 504].includes(response.status)) break;

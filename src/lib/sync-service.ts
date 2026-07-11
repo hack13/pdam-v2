@@ -1,10 +1,13 @@
 import { and, eq } from 'drizzle-orm';
+import { createHash } from 'node:crypto';
 import { db } from '../db';
 import { syncItems, syncRuns, userAssetFiles, userStorageConnections } from '../db/schema';
 import { getFileByBlobId } from './file-pipeline';
 import { buildSyncManifest } from './sync-manifest';
 import { createSyncDestination } from './sync-destinations';
 import { notifySyncRunChanged } from './sync-events';
+import { getThumbnailByKey } from './file-pipeline';
+import { buildArchiveHtml } from './archive-html';
 
 const activeSyncs = new Map<string, AbortController>();
 
@@ -85,6 +88,28 @@ export async function runSync(connectionId: string, options?: { userId?: string;
         await updateRunProgress(run.id, { filesDiscovered: files.length, filesUploaded: uploaded, filesSkipped: skipped, filesFailed: failed, bytesUploaded: bytes });
       }
     }
+    // Thumbnails are derived files, so they are not part of the asset-version
+    // file list. Keep them beside each asset so archive.html works offline.
+    for (const asset of manifest.assets) {
+      if (!asset.thumbnail) continue;
+      if (options?.signal?.aborted || controller.signal.aborted || await cancellationRequested(run.id)) throw new SyncCancelledError();
+      const thumbnailData = await getThumbnailByKey(asset.thumbnail.storageKey);
+      if (!thumbnailData) {
+        failed++;
+        console.error('[sync] thumbnail unavailable', { runId: run.id, assetId: asset.id });
+        continue;
+      }
+      try {
+        const sha256 = createHash('sha256').update(thumbnailData).digest('hex');
+        await destination.putObject({ destinationKey: asset.thumbnailPath!, body: thumbnailData, contentType: asset.thumbnail.mimeType, sha256, signal: options?.signal ?? controller.signal });
+      } catch (error) {
+        failed++;
+        console.error('[sync] thumbnail failed', { runId: run.id, assetId: asset.id, error: error instanceof Error ? error.message : 'Upload failed' });
+      }
+    }
+    const archiveHtml = buildArchiveHtml(manifest);
+    const archiveSha256 = createHash('sha256').update(archiveHtml).digest('hex');
+    await destination.putObject({ destinationKey: 'archive.html', body: Buffer.from(archiveHtml), contentType: 'text/html; charset=utf-8', sha256: archiveSha256, signal: options?.signal ?? controller.signal, overwrite: true });
     const manifestKey = `manifest/v1/${manifest.generatedAt.replace(/[^0-9]/g, '')}.json`;
     if (failed === 0) await destination.putObject({ destinationKey: manifestKey, body: Buffer.from(JSON.stringify(manifest, null, 2)), contentType: 'application/json', sha256: manifest.generatedAt });
     const status = failed ? (uploaded || skipped ? 'partial' : 'failed') : 'completed';

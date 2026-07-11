@@ -74,6 +74,46 @@ def main():
         synced += 1
         print(f"[{index}/{len(files)}] Synced {file['fileName']}")
 
+    # Keep the offline index and its thumbnails in the same folder as the
+    # versioned files. The archive endpoint renders the same page used by the
+    # server-side backup worker, so both backup methods stay in sync.
+    archive_target = root_path / "archive.html"
+    try:
+        archive_request = urllib.request.Request(f"{base_url}/api/sync/archive", headers=headers)
+        with urllib.request.urlopen(archive_request) as response:
+            if response.status != 200:
+                raise RuntimeError(f"Archive download failed: {response.status}")
+            archive_data = response.read()
+        archive_target.parent.mkdir(parents=True, exist_ok=True)
+        archive_temp = archive_target.with_name(f"{archive_target.name}.part-{os.getpid()}")
+        archive_temp.write_bytes(archive_data)
+        archive_temp.replace(archive_target)
+        print("Synced archive.html")
+    except Exception as error:
+        print(f"Failed archive.html: {error}", file=sys.stderr)
+        failed += 1
+
+    for asset in manifest["assets"]:
+        thumbnail = asset.get("thumbnail")
+        if not thumbnail:
+            continue
+        thumbnail_target = root_path / "assets" / asset["slug"] / "thumbnail.webp"
+        try:
+            thumbnail_request = urllib.request.Request(base_url + thumbnail["downloadUrl"], headers=headers)
+            with urllib.request.urlopen(thumbnail_request) as response:
+                if response.status != 200:
+                    raise RuntimeError(f"Thumbnail download failed: {response.status}")
+                thumbnail_data = response.read()
+            thumbnail_target.parent.mkdir(parents=True, exist_ok=True)
+            thumbnail_temp = thumbnail_target.with_name(f"{thumbnail_target.name}.part-{os.getpid()}")
+            thumbnail_temp.write_bytes(thumbnail_data)
+            thumbnail_temp.replace(thumbnail_target)
+            synced += 1
+            print(f"Synced thumbnail for {asset['title']}")
+        except Exception as error:
+            print(f"Failed thumbnail for {asset['title']}: {error}", file=sys.stderr)
+            failed += 1
+
     root_path.mkdir(parents=True, exist_ok=True)
     (root_path / ".pdam-manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(f"Synced {synced} file(s), skipped {skipped} unchanged file(s) to {root_path}")
