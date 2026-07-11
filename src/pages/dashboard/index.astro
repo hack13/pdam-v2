@@ -1,7 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { SignOutButton } from '../../components/SignOutButton';
-import { MarketplaceManager } from '../../components/MarketplaceManager';
 import { ApiKeyManager } from '../../components/ApiKeyManager';
 import { PasskeyManager } from '../../components/PasskeyManager';
 import { ProfilePicture } from '../../components/ProfilePicture';
@@ -140,10 +139,6 @@ const fallbackAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent
 
     <div class="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">
       <ApiKeyManager client:visible />
-    </div>
-
-    <div class="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">
-      <MarketplaceManager client:visible />
     </div>
 
   </div>

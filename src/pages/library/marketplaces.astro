@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import LibraryNav from '../../components/LibraryNav.astro';
+import { MarketplaceManager } from '../../components/MarketplaceManager';
+import { getSessionFromContext } from '../../lib/session';
+
+const session = await getSessionFromContext(Astro);
+
+if (!session?.user) {
+  return Astro.redirect('/login');
+}
+---
+
+<BaseLayout title="Marketplaces - Library - PDAM" isAuthenticated={true}>
+  <div class="mx-auto max-w-7xl px-6 py-12">
+    <div class="mb-6">
+      <h1 class="text-3xl font-bold text-white">Library</h1>
+      <p class="mt-1 text-sm text-zinc-400">Organize your assets and the marketplaces they come from.</p>
+    </div>
+
+    <LibraryNav current="marketplaces" />
+
+    <div class="rounded-xl border border-white/10 bg-white/5 p-6">
+      <MarketplaceManager client:visible />
+    </div>
+  </div>
+</BaseLayout>

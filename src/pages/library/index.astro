@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import LibraryNav from '../../components/LibraryNav.astro';
 import { getSessionFromContext } from '../../lib/session';
 import { db } from '../../db';
 import { products } from '../../db/schema';
@@ -105,6 +106,8 @@ const creatorMap = Object.fromEntries(creatorsList.map((c) => [c.id, c]));
         New Asset
       </a>
     </div>
+
+    <LibraryNav current="assets" />
 
     <form method="get" action="/library" class="mb-6">
       <div class="relative">
