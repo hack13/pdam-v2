@@ -2,8 +2,10 @@ import { PgBoss } from 'pg-boss';
 import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import { syncRuns, userStorageConnections } from '../db/schema';
+import { notifySyncRunChanged } from './sync-events';
 
 export const SYNC_QUEUE = 'pdam-sync-destination';
+export const SYNC_SCHEDULER_QUEUE = 'pdam-sync-scheduler';
 export type SyncJobData = { runId: string; connectionId: string; userId: string };
 
 let bossPromise: Promise<PgBoss> | null = null;
@@ -18,6 +20,16 @@ export async function getSyncBoss() {
     boss.on('warning', (warning) => console.warn('[pgboss] warning', warning));
     bossPromise = boss.start().then(async () => {
       await boss.createQueue(SYNC_QUEUE, { notify: true, retryLimit: 3, retryDelay: 30, retryBackoff: true, retryDelayMax: 3600, heartbeatSeconds: 60, expireInSeconds: 3600, deleteAfterSeconds: 30 * 86400 });
+      await boss.createQueue(SYNC_SCHEDULER_QUEUE, { notify: true, retryLimit: 3, retryDelay: 30, retryBackoff: true, retryDelayMax: 300, heartbeatSeconds: 60, expireInSeconds: 300, deleteAfterSeconds: 7 * 86400 });
+      await boss.schedule(SYNC_SCHEDULER_QUEUE, '* * * * *', { type: 'due-syncs' }, {
+        key: 'due-connections',
+        tz: 'UTC',
+        retryLimit: 3,
+        retryDelay: 30,
+        retryBackoff: true,
+        expireInSeconds: 300,
+        group: { id: 'pdam-sync-scheduler' },
+      });
       return boss;
     });
   }
@@ -37,6 +49,7 @@ export async function enqueueConnectionSync(connectionId: string, userId: string
   const jobId = await boss.send(SYNC_QUEUE, { runId: run.id, connectionId, userId } satisfies SyncJobData, { retryLimit: 3, retryDelay: 30, retryBackoff: true, retryDelayMax: 3600, heartbeatSeconds: 60, expireInSeconds: 3600, group: { id: userId } });
   if (!jobId) throw new Error('Sync job was not queued');
   await db.update(syncRuns).set({ pgBossJobId: jobId }).where(eq(syncRuns.id, run.id));
+  await notifySyncRunChanged(run.id);
   return { runId: run.id, jobId, status: 'queued', alreadyQueued: false };
 }
 

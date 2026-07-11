@@ -13,7 +13,22 @@ function joinPath(...parts: (string | null | undefined)[]) { return parts.filter
 
 class S3SyncDestination implements SyncDestination {
   constructor(private readonly client: S3Client, private readonly bucket: string, private readonly root?: string) {}
-  async testConnection() { await this.client.send(new HeadBucketCommand({ Bucket: this.bucket })); }
+  async testConnection() {
+    try {
+      await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
+    } catch (error) {
+      const details = error as { name?: string; message?: string; $metadata?: { httpStatusCode?: number } };
+      const status = details.$metadata?.httpStatusCode;
+      const reason = status === 403
+        ? 'access was denied; verify the access key, secret key, bucket policy, and bucket name'
+        : status === 404
+          ? 'the bucket was not found; verify the bucket name and endpoint'
+          : status === 400
+            ? 'the request was rejected; verify the endpoint, signing region, and path-style setting'
+            : details.message && details.name !== 'UnknownError' ? details.message : 'verify the endpoint, region, bucket, and credentials';
+      throw new Error(`S3 connection failed${status ? ` (HTTP ${status})` : ''}: ${reason}`);
+    }
+  }
   async exists(destinationKey: string) { try { await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: joinPath(this.root, destinationKey) })); return true; } catch { return false; } }
   async putObject(input: { destinationKey: string; body: Buffer; contentType: string; sha256: string; signal?: AbortSignal }) {
     const key = joinPath(this.root, input.destinationKey);
@@ -78,7 +93,7 @@ export async function createSyncDestination(connection: { providerType: string; 
   if (!connection.credentialsEncrypted) throw new Error('Destination credentials are missing');
   const credentials = JSON.parse(decryptSyncSecret(connection.credentialsEncrypted)) as Record<string, string | boolean>;
   if (connection.providerType === 's3') {
-    const client = new S3Client({ endpoint: String(credentials.endpoint), region: String(credentials.region ?? 'auto'), forcePathStyle: credentials.forcePathStyle !== false, credentials: { accessKeyId: String(credentials.accessKeyId), secretAccessKey: String(credentials.secretAccessKey) } });
+    const client = new S3Client({ endpoint: String(credentials.endpoint), region: String(credentials.region || 'auto'), forcePathStyle: credentials.forcePathStyle !== false, credentials: { accessKeyId: String(credentials.accessKeyId), secretAccessKey: String(credentials.secretAccessKey) } });
     return new S3SyncDestination(client, String(credentials.bucket), connection.rootPath ?? undefined);
   }
   if (connection.providerType === 'webdav') {

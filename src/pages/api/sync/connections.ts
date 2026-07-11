@@ -19,9 +19,17 @@ export const POST: APIRoute = async (context) => {
   const name = String(body.name ?? '').trim();
   if (!name) return jsonError('Connection name is required');
   const credentials = providerType === 's3' ? {
-    endpoint: String(body.endpoint ?? ''), region: String(body.region ?? 'auto'), bucket: String(body.bucket ?? ''), accessKeyId: String(body.accessKeyId ?? ''), secretAccessKey: String(body.secretAccessKey ?? ''), forcePathStyle: body.forcePathStyle !== false,
+    endpoint: String(body.endpoint ?? ''), region: String(body.region ?? 'auto').trim(), bucket: String(body.bucket ?? '').trim(), accessKeyId: String(body.accessKeyId ?? ''), secretAccessKey: String(body.secretAccessKey ?? ''), forcePathStyle: body.forcePathStyle !== false,
   } : { endpoint: String(body.endpoint ?? ''), username: String(body.username ?? ''), password: String(body.password ?? '') };
   if (Object.values(credentials).some((value) => value === '')) return jsonError('All destination fields are required');
+  if (providerType === 's3') {
+    try {
+      const endpoint = new URL(credentials.endpoint);
+      if (!['http:', 'https:'].includes(endpoint.protocol)) throw new Error('unsupported protocol');
+    } catch {
+      return jsonError('S3 endpoint must be a valid http(s) URL, such as https://s3.example.com');
+    }
+  }
   const [connection] = await db.insert(userStorageConnections).values({ userId: auth.user.id, providerType, providerName: name, externalAccountId: `${providerType}:${Date.now()}`, rootPath: body.rootPath ? String(body.rootPath) : null, credentialsEncrypted: encryptSyncSecret(JSON.stringify(credentials)), syncMode: 'snapshot' }).returning();
   try { await (await createSyncDestination(connection)).testConnection(); } catch (error) { await db.delete(userStorageConnections).where(eq(userStorageConnections.id, connection.id)); return jsonError(error instanceof Error ? error.message : 'Connection test failed', 400); }
   return json({ connection: { ...connection, credentialsEncrypted: undefined } }, 201);

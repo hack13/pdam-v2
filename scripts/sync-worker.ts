@@ -1,18 +1,28 @@
 import 'dotenv/config';
 import { eq } from 'drizzle-orm';
-import { getSyncBoss, SYNC_QUEUE, type SyncJobData } from '../src/lib/sync-queue';
+import { getSyncBoss, SYNC_QUEUE, SYNC_SCHEDULER_QUEUE, type SyncJobData } from '../src/lib/sync-queue';
 import { db } from '../src/db';
 import { syncRuns } from '../src/db/schema';
 import { runSync } from '../src/lib/sync-service';
+import { enqueueDueScheduledConnections } from '../src/lib/sync-scheduler';
+import { notifySyncRunChanged } from '../src/lib/sync-events';
 
 const boss = await getSyncBoss();
 const concurrency = Math.max(1, Number(process.env.SYNC_WORKER_CONCURRENCY ?? 2));
-console.info('[sync-worker] started', { queue: SYNC_QUEUE, concurrency });
+console.info('[sync-worker] started', { queues: [SYNC_QUEUE, SYNC_SCHEDULER_QUEUE], concurrency });
+
+await boss.work(SYNC_SCHEDULER_QUEUE, { includeMetadata: true, localConcurrency: 1, groupConcurrency: 1, pollingIntervalSeconds: 2 }, async ([job]) => {
+  const results = await enqueueDueScheduledConnections(new Date(), 500);
+  const failed = results.filter((result) => result.status === 'failed').length;
+  console.info('[sync-worker] scheduler tick completed', { jobId: job.id, queued: results.length - failed, failed });
+  return { queued: results.length - failed, failed };
+});
 
 await boss.work(SYNC_QUEUE, { includeMetadata: true, localConcurrency: concurrency, groupConcurrency: 1, pollingIntervalSeconds: 2 }, async ([job]) => {
   const data = job.data as SyncJobData;
   console.info('[sync-worker] job started', { jobId: job.id, runId: data.runId, connectionId: data.connectionId, retryCount: job.retryCount });
   await db.update(syncRuns).set({ status: 'running', startedAt: new Date() }).where(eq(syncRuns.id, data.runId));
+  await notifySyncRunChanged(data.runId);
   try {
     const result = await runSync(data.connectionId, { userId: data.userId, runId: data.runId, signal: job.signal });
     if (result.status === 'cancelled') return result;
