@@ -5,5 +5,5 @@ import SyncNav from '../../components/SyncNav.astro';
 ---
 
 <BaseLayout title="Local Sync - PDAM" isAuthenticated={false}>
-  <main class="mx-auto max-w-4xl px-6 py-10"><div class="mb-8"><p class="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-300">Sync</p><h1 class="mt-2 text-3xl font-bold text-white">Local client</h1><p class="mt-2 text-sm text-zinc-400">Sync directly to a folder on this computer.</p></div><SyncNav current="client" /><BrowserSyncClient client:load /></main>
+  <div class="mx-auto max-w-7xl px-6 py-10"><div class="mb-8"><p class="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-300">Sync</p><h1 class="mt-2 text-3xl font-bold text-white">Local client</h1><p class="mt-2 text-sm text-zinc-400">Sync directly to a folder on this computer.</p></div><SyncNav current="client" /><BrowserSyncClient client:load /></div>
 </BaseLayout>

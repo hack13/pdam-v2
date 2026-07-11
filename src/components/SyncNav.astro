@@ -1,13 +1,14 @@
 ---
 interface Props {
-  current: 'dashboard' | 'destinations' | 'status' | 'client';
+  current: 'dashboard' | 'destinations' | 'status' | 'client' | 'python';
 }
 const { current } = Astro.props;
 const links = [
   { key: 'dashboard', label: 'Overview', href: '/sync' },
   { key: 'destinations', label: 'Destinations', href: '/sync/destinations' },
   { key: 'status', label: 'Activity', href: '/sync/status' },
-  { key: 'client', label: 'Local client', href: '/sync/client' },
+  { key: 'python', label: 'Python Sync', href: '/sync/python' },
+  { key: 'client', label: 'Local Client', href: '/sync/client' },
 ] as const;
 ---
 
