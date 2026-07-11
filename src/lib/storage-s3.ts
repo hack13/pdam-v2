@@ -37,6 +37,12 @@ export class S3StorageProvider implements StorageProvider {
       endpoint: config.endpoint,
       region: config.region,
       forcePathStyle: config.forcePathStyle ?? true,
+      // Part URLs are consumed by the browser, which cannot provide the
+      // SDK-generated checksum query parameters for the actual Blob body.
+      // Only calculate request checksums when the operation explicitly
+      // requires one; otherwise S3-compatible providers can reject the part
+      // with 403/BadDigest.
+      requestChecksumCalculation: 'WHEN_REQUIRED',
       credentials: {
         accessKeyId: config.accessKeyId,
         secretAccessKey: config.secretAccessKey,

@@ -71,7 +71,10 @@ async function uploadPartWithRetry(
 
   for (let attempt = 0; attempt < MAX_PART_RETRIES; attempt++) {
     try {
-      const response = await fetch(url, {
+      const uploadUrl = typeof window !== 'undefined' && new URL(url).origin !== window.location.origin
+        ? `/api/uploads/proxy?url=${encodeURIComponent(url)}`
+        : url;
+      const response = await fetch(uploadUrl, {
         method: 'PUT',
         body: blob,
       });

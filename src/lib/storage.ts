@@ -41,6 +41,18 @@ function getEnv(name: string): string | undefined {
   return undefined;
 }
 
+/** The S3 endpoint used by the server-side upload proxy. */
+export function getConfiguredStorageOrigin(): string | null {
+  const endpoint = getEnv('S3_ENDPOINT');
+  if (!endpoint) return null;
+
+  try {
+    return new URL(endpoint).origin;
+  } catch {
+    return null;
+  }
+}
+
 function createStorageProvider(): StorageProvider {
   const endpoint = getEnv('S3_ENDPOINT');
   if (endpoint) {
