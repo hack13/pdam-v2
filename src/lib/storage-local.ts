@@ -1,5 +1,5 @@
 import { mkdirSync, existsSync, unlinkSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { open, readFile } from 'node:fs/promises';
 import { isAbsolute, join, normalize, relative } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -48,6 +48,14 @@ export class LocalStorageProvider implements StorageProvider {
   async get(key: string): Promise<Buffer> {
     const filePath = this.resolvePath(key);
     return await readFile(filePath);
+  }
+
+  async getObjectStream(key: string, range?: { start?: number; end?: number }): Promise<AsyncIterable<Uint8Array>> {
+    const filePath = this.resolvePath(key);
+    const file = await open(filePath, 'r');
+    const stream = file.createReadStream({ start: range?.start, end: range?.end });
+    stream.once('close', () => { void file.close(); });
+    return stream;
   }
 
   async delete(key: string): Promise<void> {

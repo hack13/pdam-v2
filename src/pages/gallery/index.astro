@@ -9,15 +9,52 @@ import {
   marketplaceSources,
   fileThumbnails,
 } from '../../db/schema';
-import { eq, desc, inArray } from 'drizzle-orm';
+import { and, desc, eq, ilike, inArray, lt, or } from 'drizzle-orm';
+
+const PAGE_SIZE = 24;
+const search = Astro.url.searchParams.get('q')?.trim() ?? '';
+const cursorValue = Astro.url.searchParams.get('cursor');
+let cursor: { updatedAt: string; id: string } | null = null;
+if (cursorValue) {
+  try {
+    const decoded = JSON.parse(Buffer.from(cursorValue, 'base64url').toString('utf8')) as { updatedAt?: string; id?: string };
+    if (decoded.updatedAt && decoded.id) cursor = { updatedAt: decoded.updatedAt, id: decoded.id };
+  } catch {
+    // Ignore malformed cursors and serve the first page.
+  }
+}
+
+const galleryWhere = [
+  eq(products.isGalleryListed, true),
+  ...(search ? [or(ilike(products.title, `%${search}%`), ilike(products.descriptionText, `%${search}%`))!] : []),
+  ...(cursor ? [or(
+    lt(products.updatedAt, new Date(cursor.updatedAt)),
+    and(eq(products.updatedAt, new Date(cursor.updatedAt)), lt(products.id, cursor.id)),
+  )!] : []),
+];
 
 const session = await getSessionFromContext(Astro);
 const isAuthenticated = !!session?.user;
 
-const listings = await db.query.products.findMany({
-  where: eq(products.isGalleryListed, true),
-  orderBy: [desc(products.updatedAt)],
+const fetchedListings = await db.query.products.findMany({
+  where: and(...galleryWhere),
+  orderBy: [desc(products.updatedAt), desc(products.id)],
+  limit: PAGE_SIZE + 1,
+  columns: {
+    id: true,
+    creatorIds: true,
+    title: true,
+    tags: true,
+    thumbnailFileThumbnailId: true,
+    sourceProductId: true,
+    updatedAt: true,
+  },
 });
+const hasNextPage = fetchedListings.length > PAGE_SIZE;
+const listings = fetchedListings.slice(0, PAGE_SIZE);
+const nextCursor = hasNextPage && listings.length > 0
+  ? Buffer.from(JSON.stringify({ updatedAt: listings[listings.length - 1].updatedAt.toISOString(), id: listings[listings.length - 1].id })).toString('base64url')
+  : null;
 
 const thumbIds = listings
   .map((l) => l.thumbnailFileThumbnailId)
@@ -56,10 +93,17 @@ const markets =
     : [];
 const marketplaceMap = Object.fromEntries(markets.map((m) => [m.id, m]));
 
+const linksByProduct = new Map<string, typeof links>();
+for (const link of links) {
+  const productLinks = linksByProduct.get(link.productId) ?? [];
+  productLinks.push(link);
+  linksByProduct.set(link.productId, productLinks);
+}
+
 let ownedSourceIds = new Set<string>();
-if (session?.user) {
+if (session?.user && listingIds.length > 0) {
   const owned = await db.query.products.findMany({
-    where: eq(products.ownerUserId, session.user.id),
+    where: and(eq(products.ownerUserId, session.user.id), inArray(products.sourceProductId, listingIds)),
     columns: { sourceProductId: true },
   });
   ownedSourceIds = new Set(
@@ -77,7 +121,7 @@ if (session?.user) {
       </p>
     </div>
 
-    <div class="mb-6">
+    <form method="get" action="/gallery" class="mb-6">
       <div class="relative">
         <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -85,11 +129,13 @@ if (session?.user) {
         <input
           id="gallery-search"
           type="text"
+          name="q"
+          value={search}
           placeholder="Search gallery…"
           class="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder-zinc-500 outline-none transition-colors focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30"
         />
       </div>
-    </div>
+    </form>
 
     {listings.length === 0 ? (
       <div class="rounded-xl border border-dashed border-white/10 bg-white/5 p-12 text-center">
@@ -106,7 +152,7 @@ if (session?.user) {
           const listingCreators = (listing.creatorIds ?? [])
             .map((id) => creatorMap[id])
             .filter(Boolean);
-          const listingLinks = links.filter((l) => l.productId === listing.id);
+          const listingLinks = linksByProduct.get(listing.id) ?? [];
           const marketNames = listingLinks
             .map((l) => marketplaceMap[l.marketplaceSourceId]?.name)
             .filter(Boolean);
@@ -156,6 +202,17 @@ if (session?.user) {
             </a>
           );
         })}
+      </div>
+    )}
+
+    {nextCursor && (
+      <div class="mt-8 flex justify-center">
+        <a
+          href={`/gallery?${new URLSearchParams({ ...(search ? { q: search } : {}), cursor: nextCursor })}`}
+          class="btn-secondary"
+        >
+          Next page
+        </a>
       </div>
     )}
 

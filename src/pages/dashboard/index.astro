@@ -8,7 +8,7 @@ import { ProfilePicture } from '../../components/ProfilePicture';
 import { getSessionFromContext } from '../../lib/session';
 import { db } from '../../db';
 import { products, users } from '../../db/schema';
-import { eq } from 'drizzle-orm';
+import { count, eq } from 'drizzle-orm';
 import { getUserStorage, formatBytes } from '../../lib/storage-accounting';
 import { isCreatorUser, getLinkedCreator } from '../../lib/creator';
 import { getPendingApplication } from '../../lib/creator-applications';
@@ -29,15 +29,12 @@ if (!user) {
 
 const isAuthenticated = true;
 const isCreator = isCreatorUser(user);
-const linkedCreator = isCreator ? await getLinkedCreator(user.id) : null;
-const pendingApplication = await getPendingApplication(user.id);
-
-const assetCount = (await db.query.products.findMany({
-  where: eq(products.ownerUserId, user.id),
-  columns: { id: true },
-})).length;
-
-const userStorage = await getUserStorage(user.id);
+const [{ assetCount }, linkedCreator, pendingApplication, userStorage] = await Promise.all([
+  db.select({ assetCount: count() }).from(products).where(eq(products.ownerUserId, user.id)).then(([row]) => row),
+  isCreator ? getLinkedCreator(user.id) : Promise.resolve(null),
+  getPendingApplication(user.id),
+  getUserStorage(user.id),
+]);
 const totalStorageBytes = userStorage?.logicalBytesUsed ?? 0;
 const storageUsed = formatBytes(totalStorageBytes);
 
@@ -138,15 +135,15 @@ const fallbackAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent
     </div>
 
     <div class="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">
-      <PasskeyManager client:load />
+      <PasskeyManager client:visible />
     </div>
 
     <div class="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">
-      <ApiKeyManager client:load />
+      <ApiKeyManager client:visible />
     </div>
 
     <div class="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">
-      <MarketplaceManager client:load />
+      <MarketplaceManager client:visible />
     </div>
 
   </div>

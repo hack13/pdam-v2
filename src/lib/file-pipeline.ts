@@ -299,3 +299,52 @@ export async function getFileByBlobId(blobId: string): Promise<{ data: Buffer; f
   const data = await storage.get(storageObj.storageKey);
   return { data, fileName: blob.fileName, mimeType: blob.mimeType };
 }
+
+export interface FileStreamResult {
+  stream: AsyncIterable<Uint8Array>;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+}
+
+/**
+ * Returns a storage-backed stream after resolving the blob metadata.
+ * Legacy keys are migrated through the existing buffered path once; new keys
+ * stay streaming all the way to the HTTP response.
+ */
+export async function getFileStreamByBlobId(
+  blobId: string,
+  range?: { start?: number; end?: number },
+): Promise<FileStreamResult | null> {
+  const blob = await db.query.globalFileBlobs.findFirst({
+    where: eq(globalFileBlobs.id, blobId),
+  });
+  if (!blob) return null;
+
+  const storageObj = await db.query.blobStorageObjects.findFirst({
+    where: eq(blobStorageObjects.blobId, blobId),
+  });
+  if (!storageObj) return null;
+
+  if (isOldBlobKey(storageObj.storageKey)) {
+    const file = await getFileByBlobId(blobId);
+    if (!file) return null;
+    const data = file.data;
+    const fileName = file.fileName;
+    const mimeType = file.mimeType;
+    async function* bufferedFile() {
+      const start = range?.start ?? 0;
+      const end = range?.end ?? data.length - 1;
+      yield new Uint8Array(data.subarray(start, end + 1));
+    }
+    return { stream: bufferedFile(), fileName, mimeType, fileSize: blob.fileSize };
+  }
+
+  if (!storage.getObjectStream) return null;
+  return {
+    stream: await storage.getObjectStream(storageObj.storageKey, range),
+    fileName: blob.fileName,
+    mimeType: blob.mimeType,
+    fileSize: blob.fileSize,
+  };
+}

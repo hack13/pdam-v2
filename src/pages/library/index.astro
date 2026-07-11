@@ -2,8 +2,21 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getSessionFromContext } from '../../lib/session';
 import { db } from '../../db';
-import { products, creators } from '../../db/schema';
-import { eq, desc, inArray } from 'drizzle-orm';
+import { products } from '../../db/schema';
+import { and, desc, eq, ilike, inArray, lt, or } from 'drizzle-orm';
+
+const PAGE_SIZE = 24;
+const search = Astro.url.searchParams.get('q')?.trim() ?? '';
+const cursorValue = Astro.url.searchParams.get('cursor');
+let cursor: { createdAt: string; id: string } | null = null;
+if (cursorValue) {
+  try {
+    const decoded = JSON.parse(Buffer.from(cursorValue, 'base64url').toString('utf8')) as { createdAt?: string; id?: string };
+    if (decoded.createdAt && decoded.id) cursor = { createdAt: decoded.createdAt, id: decoded.id };
+  } catch {
+    // Ignore malformed cursors and serve the first page.
+  }
+}
 
 const session = await getSessionFromContext(Astro);
 
@@ -14,10 +27,36 @@ if (!session?.user) {
 const { user } = session;
 const isAuthenticated = true;
 
-const userAssets = await db.query.products.findMany({
-  where: eq(products.ownerUserId, user.id),
-  orderBy: [desc(products.createdAt)],
+const libraryWhere = [
+  eq(products.ownerUserId, user.id),
+  ...(search ? [or(ilike(products.title, `%${search}%`), ilike(products.descriptionText, `%${search}%`))!] : []),
+  ...(cursor ? [or(
+    lt(products.createdAt, new Date(cursor.createdAt)),
+    and(eq(products.createdAt, new Date(cursor.createdAt)), lt(products.id, cursor.id)),
+  )!] : []),
+];
+
+const fetchedAssets = await db.query.products.findMany({
+  where: and(...libraryWhere),
+  orderBy: [desc(products.createdAt), desc(products.id)],
+  limit: PAGE_SIZE + 1,
+  columns: {
+    id: true,
+    creatorIds: true,
+    title: true,
+    tags: true,
+    thumbnailFileThumbnailId: true,
+    marketplaceSourceId: true,
+    productUrl: true,
+    sourceProductId: true,
+    createdAt: true,
+  },
 });
+const hasNextPage = fetchedAssets.length > PAGE_SIZE;
+const userAssets = fetchedAssets.slice(0, PAGE_SIZE);
+const nextCursor = hasNextPage && userAssets.length > 0
+  ? Buffer.from(JSON.stringify({ createdAt: userAssets[userAssets.length - 1].createdAt.toISOString(), id: userAssets[userAssets.length - 1].id })).toString('base64url')
+  : null;
 
 const thumbnails = userAssets.length > 0
   ? await db.query.fileThumbnails.findMany({
@@ -67,7 +106,7 @@ const creatorMap = Object.fromEntries(creatorsList.map((c) => [c.id, c]));
       </a>
     </div>
 
-    <div class="mb-6">
+    <form method="get" action="/library" class="mb-6">
       <div class="relative">
         <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -75,11 +114,13 @@ const creatorMap = Object.fromEntries(creatorsList.map((c) => [c.id, c]));
         <input
           id="library-search"
           type="text"
+          name="q"
+          value={search}
           placeholder="Search assets..."
           class="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder-zinc-500 outline-none transition-colors focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30"
         />
       </div>
-    </div>
+    </form>
 
     {userAssets.length === 0 ? (
       <div class="rounded-xl border border-dashed border-white/10 bg-white/5 p-12 text-center">
@@ -161,6 +202,17 @@ const creatorMap = Object.fromEntries(creatorsList.map((c) => [c.id, c]));
             </a>
           );
         })}
+      </div>
+    )}
+
+    {nextCursor && (
+      <div class="mt-8 flex justify-center">
+        <a
+          href={`/library?${new URLSearchParams({ ...(search ? { q: search } : {}), cursor: nextCursor })}`}
+          class="btn-secondary"
+        >
+          Next page
+        </a>
       </div>
     )}
 

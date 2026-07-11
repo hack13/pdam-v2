@@ -77,11 +77,14 @@ export class S3StorageProvider implements StorageProvider {
     return Buffer.concat(chunks);
   }
 
-  async getObjectStream(key: string): Promise<AsyncIterable<Uint8Array>> {
+  async getObjectStream(key: string, range?: { start?: number; end?: number }): Promise<AsyncIterable<Uint8Array>> {
     const response = await this.client.send(
       new GetObjectCommand({
         Bucket: this.bucket,
         Key: key,
+        ...(range?.start !== undefined && {
+          Range: `bytes=${range.start}-${range.end ?? ''}`,
+        }),
       }),
     );
 

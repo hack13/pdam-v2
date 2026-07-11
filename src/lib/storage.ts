@@ -27,7 +27,7 @@ export interface StorageProvider {
   completeMultipartUpload?(key: string, uploadId: string, parts: MultipartPart[]): Promise<void>;
   abortMultipartUpload?(key: string, uploadId: string): Promise<void>;
   listParts?(key: string, uploadId: string): Promise<MultipartPart[]>;
-  getObjectStream?(key: string): Promise<AsyncIterable<Uint8Array>>;
+  getObjectStream?(key: string, range?: { start?: number; end?: number }): Promise<AsyncIterable<Uint8Array>>;
 }
 
 function getEnv(name: string): string | undefined {
