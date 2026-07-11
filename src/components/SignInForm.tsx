@@ -7,6 +7,7 @@ export function SignInForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
     const supported =
@@ -59,6 +60,16 @@ export function SignInForm() {
     window.location.href = '/dashboard';
   }
 
+  async function handleGoogleSignIn() {
+    setError(null);
+    setGoogleLoading(true);
+    const result = await authClient.signIn.social({ provider: 'google', callbackURL: '/dashboard' });
+    if (result.error) {
+      setError(result.error.message ?? 'Google sign-in failed. Please try again.');
+      setGoogleLoading(false);
+    }
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
@@ -101,7 +112,7 @@ export function SignInForm() {
 
       <button
         type="submit"
-        disabled={loading || passkeyLoading}
+        disabled={loading || passkeyLoading || googleLoading}
         className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
       >
         {loading ? 'Signing in...' : 'Sign In'}
@@ -119,10 +130,19 @@ export function SignInForm() {
       <button
         type="button"
         onClick={() => void handlePasskeySignIn()}
-        disabled={loading || passkeyLoading}
+        disabled={loading || passkeyLoading || googleLoading}
         className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {passkeyLoading ? 'Waiting for passkey...' : 'Sign in with Passkey'}
+      </button>
+
+      <button
+        type="button"
+        onClick={() => void handleGoogleSignIn()}
+        disabled={loading || passkeyLoading || googleLoading}
+        className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {googleLoading ? 'Redirecting to Google...' : 'Continue with Google'}
       </button>
 
       <p className="text-center text-sm text-zinc-400">

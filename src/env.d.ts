@@ -4,6 +4,8 @@ interface ImportMetaEnv {
   readonly DATABASE_URL?: string;
   readonly BETTER_AUTH_URL?: string;
   readonly BETTER_AUTH_SECRET?: string;
+  readonly GOOGLE_CLIENT_ID?: string;
+  readonly GOOGLE_CLIENT_SECRET?: string;
   readonly WEBHOOK_SECRET_ENCRYPTION_KEY?: string;
   readonly TRUST_PROXY?: 'true' | 'false';
   readonly S3_ENDPOINT?: string;

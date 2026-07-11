@@ -3,6 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import { SignOutButton } from '../../components/SignOutButton';
 import { ApiKeyManager } from '../../components/ApiKeyManager';
 import { PasskeyManager } from '../../components/PasskeyManager';
+import { GoogleAccountManager } from '../../components/GoogleAccountManager';
 import { ProfilePicture } from '../../components/ProfilePicture';
 import { getSessionFromContext } from '../../lib/session';
 import { db } from '../../db';
@@ -135,6 +136,10 @@ const fallbackAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent
 
     <div class="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">
       <PasskeyManager client:visible />
+    </div>
+
+    <div class="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">
+      <GoogleAccountManager client:visible />
     </div>
 
     <div class="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">

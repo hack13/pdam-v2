@@ -1,7 +1,15 @@
 import { S3Client, PutObjectCommand, HeadBucketCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import dns from 'node:dns/promises';
 import net from 'node:net';
+import { eq } from 'drizzle-orm';
+import { db } from '../db';
+import { userStorageConnections } from '../db/schema';
 import { decryptSyncSecret } from './sync-secrets';
+import { encryptSyncSecret } from './sync-secrets';
+
+const runtimeEnv = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
+const googleClientId = runtimeEnv?.GOOGLE_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = runtimeEnv?.GOOGLE_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET;
 
 export interface SyncDestination {
   testConnection(): Promise<void>;
@@ -89,7 +97,102 @@ class WebdavSyncDestination implements SyncDestination {
   }
 }
 
-export async function createSyncDestination(connection: { providerType: string; rootPath: string | null; credentialsEncrypted: string | null }): Promise<SyncDestination> {
+type GoogleCredentials = { accessToken: string; refreshToken: string; accessTokenExpiresAt?: string | null };
+
+class GoogleDriveSyncDestination implements SyncDestination {
+  private rootFolderId: string | null = null;
+  constructor(private readonly connectionId: string, private readonly rootPath: string | null, private credentials: GoogleCredentials) {}
+
+  private async saveCredentials() {
+    await db.update(userStorageConnections).set({
+      credentialsEncrypted: encryptSyncSecret(JSON.stringify(this.credentials)),
+      updatedAt: new Date(),
+    }).where(eq(userStorageConnections.id, this.connectionId));
+  }
+
+  private async refreshToken() {
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: googleClientId ?? '',
+        client_secret: googleClientSecret ?? '',
+        refresh_token: this.credentials.refreshToken,
+        grant_type: 'refresh_token',
+      }),
+    });
+    const data = await response.json().catch(() => ({})) as { access_token?: string; expires_in?: number; error_description?: string };
+    if (!response.ok || !data.access_token) throw new Error(`Google Drive authorization failed: ${data.error_description ?? 'reconnect Google Drive'}`);
+    this.credentials.accessToken = data.access_token;
+    this.credentials.accessTokenExpiresAt = new Date(Date.now() + (data.expires_in ?? 3600) * 1000).toISOString();
+    await this.saveCredentials();
+  }
+
+  private async authorizedFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+    const expiresAt = this.credentials.accessTokenExpiresAt ? new Date(this.credentials.accessTokenExpiresAt).getTime() : 0;
+    if (!this.credentials.accessToken || expiresAt <= Date.now() + 60_000) await this.refreshToken();
+    const request = () => fetch(input, { ...init, headers: { ...init.headers, Authorization: `Bearer ${this.credentials.accessToken}` }, redirect: 'error' });
+    let response = await request();
+    if (response.status === 401) { await this.refreshToken(); response = await request(); }
+    return response;
+  }
+
+  private async findOrCreateFolder(name: string, parentId?: string) {
+    const escapedName = name.replace(/'/g, "\\'");
+    const query = [`name = '${escapedName}'`, "mimeType = 'application/vnd.google-apps.folder'", 'trashed = false', parentId ? `'${parentId}' in parents` : ''].filter(Boolean).join(' and ');
+    const list = await this.authorizedFetch(`https://www.googleapis.com/drive/v3/files?${new URLSearchParams({ q: query, fields: 'files(id)', pageSize: '1' })}`);
+    const result = await list.json().catch(() => ({})) as { files?: { id: string }[] };
+    if (list.ok && result.files?.[0]) return result.files[0].id;
+    const create = await this.authorizedFetch('https://www.googleapis.com/drive/v3/files?fields=id', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, mimeType: 'application/vnd.google-apps.folder', ...(parentId ? { parents: [parentId] } : {}) }) });
+    const created = await create.json().catch(() => ({})) as { id?: string; error?: { message?: string } };
+    if (!create.ok || !created.id) throw new Error(`Google Drive folder creation failed: ${created.error?.message ?? create.status}`);
+    return created.id;
+  }
+
+  private async folderFor(key: string) {
+    if (!this.rootFolderId) this.rootFolderId = await this.findOrCreateFolder(this.rootPath || 'PDAM Backups');
+    let folderId = this.rootFolderId;
+    for (const part of key.split('/').slice(0, -1).filter(Boolean)) folderId = await this.findOrCreateFolder(part, folderId);
+    return folderId;
+  }
+
+  async testConnection() {
+    const response = await this.authorizedFetch('https://www.googleapis.com/drive/v3/about?fields=user');
+    if (!response.ok) throw new Error(`Google Drive connection failed (${response.status})`);
+    await this.folderFor('connection-check');
+  }
+
+  private async findFile(destinationKey: string) {
+    const folderId = await this.folderFor(destinationKey);
+    const name = destinationKey.split('/').pop()?.replace(/'/g, "\\'") ?? '';
+    const query = `name = '${name}' and '${folderId}' in parents and trashed = false`;
+    const response = await this.authorizedFetch(`https://www.googleapis.com/drive/v3/files?${new URLSearchParams({ q: query, fields: 'files(id)', pageSize: '1' })}`);
+    const data = await response.json().catch(() => ({})) as { files?: { id: string }[] };
+    return response.ok ? data.files?.[0]?.id ?? null : null;
+  }
+
+  async exists(destinationKey: string) {
+    return Boolean(await this.findFile(destinationKey));
+  }
+
+  async putObject(input: { destinationKey: string; body: Buffer; contentType: string; sha256: string; signal?: AbortSignal; overwrite?: boolean }) {
+    const existingId = await this.findFile(input.destinationKey);
+    if (!input.overwrite && existingId) return { remoteId: existingId };
+    const folderId = await this.folderFor(input.destinationKey);
+    const name = input.destinationKey.split('/').pop() ?? 'file';
+    const boundary = `pdam-${crypto.randomUUID()}`;
+    const prefix = Buffer.from(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({ name, parents: [folderId], appProperties: { sha256: input.sha256 } })}\r\n--${boundary}\r\nContent-Type: ${input.contentType}\r\n\r\n`);
+    const suffix = Buffer.from(`\r\n--${boundary}--`);
+    const response = await this.authorizedFetch(`https://www.googleapis.com/upload/drive/v3/files${existingId ? `/${existingId}` : ''}?uploadType=multipart&fields=id,md5Checksum`, {
+      method: existingId ? 'PATCH' : 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body: Buffer.concat([prefix, input.body, suffix]), signal: input.signal,
+    });
+    const data = await response.json().catch(() => ({})) as { id?: string; md5Checksum?: string; error?: { message?: string } };
+    if (!response.ok || !data.id) throw new Error(`Google Drive upload failed: ${data.error?.message ?? response.status}`);
+    return { remoteId: data.id, etag: data.md5Checksum };
+  }
+}
+
+export async function createSyncDestination(connection: { id: string; providerType: string; rootPath: string | null; credentialsEncrypted: string | null }): Promise<SyncDestination> {
   if (!connection.credentialsEncrypted) throw new Error('Destination credentials are missing');
   const credentials = JSON.parse(decryptSyncSecret(connection.credentialsEncrypted)) as Record<string, string | boolean>;
   if (connection.providerType === 's3') {
@@ -99,6 +202,9 @@ export async function createSyncDestination(connection: { providerType: string; 
   if (connection.providerType === 'webdav') {
     const url = await validateWebdavUrl(String(credentials.endpoint));
     return new WebdavSyncDestination(url, String(credentials.username), String(credentials.password), connection.rootPath ?? undefined);
+  }
+  if (connection.providerType === 'google-drive') {
+    return new GoogleDriveSyncDestination(connection.id, connection.rootPath, credentials as unknown as GoogleCredentials);
   }
   throw new Error(`Unsupported sync destination: ${connection.providerType}`);
 }

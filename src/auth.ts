@@ -5,8 +5,14 @@ import { getAuthenticatorName, passkey } from '@better-auth/passkey';
 import { db } from './db';
 import * as schema from './db/schema';
 
+const runtimeEnv = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
+const betterAuthUrl = runtimeEnv?.BETTER_AUTH_URL ?? process.env.BETTER_AUTH_URL;
+const betterAuthSecret = runtimeEnv?.BETTER_AUTH_SECRET ?? process.env.BETTER_AUTH_SECRET;
+const googleClientId = runtimeEnv?.GOOGLE_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = runtimeEnv?.GOOGLE_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET;
+
 function passkeyOriginConfig() {
-  const baseURL = process.env.BETTER_AUTH_URL?.replace(/\/$/, '');
+  const baseURL = betterAuthUrl?.replace(/\/$/, '');
   if (!baseURL) {
     return { rpID: 'localhost' as const, origin: undefined as string | undefined };
   }
@@ -22,8 +28,8 @@ const { rpID, origin } = passkeyOriginConfig();
 
 export const auth = betterAuth({
   appName: 'PDAM',
-  baseURL: process.env.BETTER_AUTH_URL,
-  secret: process.env.BETTER_AUTH_SECRET,
+  baseURL: betterAuthUrl,
+  secret: betterAuthSecret,
   advanced: {
     defaultCookieAttributes: {
       httpOnly: true,
@@ -55,6 +61,24 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  account: {
+    accountLinking: {
+      // Drive accounts are often separate from the email used for PDAM.
+      // Linking still requires an authenticated PDAM session and Google OAuth
+      // confirmation; the PDAM account email is never changed by this.
+      allowDifferentEmails: true,
+    },
+  },
+  socialProviders: googleClientId && googleClientSecret ? {
+    google: {
+      clientId: googleClientId,
+      clientSecret: googleClientSecret,
+      // A Drive destination runs after the browser session has ended, so ask
+      // Google for a refresh token when the account is linked.
+      accessType: 'offline',
+      prompt: 'select_account consent',
+    },
+  } : {},
   plugins: [
     apiKey({
       defaultPrefix: 'pdam_',
