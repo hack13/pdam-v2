@@ -223,15 +223,11 @@ export interface VerificationWebhookResult {
 export async function callVerificationWebhook(params: {
   endpointUrl: string;
   secret: string;
-  productId: string;
   productTitle: string;
-  marketplaceSourceId: string;
+  marketplaceProductId: string;
   marketplaceSlug: string | null;
-  marketplaceName: string | null;
   licenseKey: string;
   userId: string;
-  userEmail: string | null;
-  ipAddress: string | null;
 }): Promise<VerificationWebhookResult> {
   let endpoint: ValidatedWebhookEndpoint;
   try {
@@ -246,15 +242,11 @@ export async function callVerificationWebhook(params: {
 
   const payload = {
     event: 'license.verify',
-    productId: params.productId,
     productTitle: params.productTitle,
-    marketplaceSourceId: params.marketplaceSourceId,
     marketplaceSlug: params.marketplaceSlug,
-    marketplaceName: params.marketplaceName,
     licenseKey: params.licenseKey,
     userId: params.userId,
-    userEmail: params.userEmail,
-    ipAddress: params.ipAddress,
+    marketplaceProductId: params.marketplaceProductId,
   };
 
   const body = JSON.stringify(payload);

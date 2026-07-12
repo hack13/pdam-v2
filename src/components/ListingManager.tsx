@@ -9,6 +9,7 @@ interface Marketplace {
 interface PurchaseLinkDraft {
   marketplaceSourceId: string;
   productUrl: string;
+  marketplaceProductId: string;
   label: string;
 }
 
@@ -22,6 +23,7 @@ interface Listing {
     id: string;
     marketplaceSourceId: string;
     productUrl: string;
+    marketplaceProductId: string | null;
     label: string | null;
   }>;
 }
@@ -60,7 +62,7 @@ export function ListingManager({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [productId, setProductId] = useState('');
   const [links, setLinks] = useState<PurchaseLinkDraft[]>([
-    { marketplaceSourceId: '', productUrl: '', label: '' },
+    { marketplaceSourceId: '', productUrl: '', marketplaceProductId: '', label: '' },
   ]);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
@@ -111,7 +113,7 @@ export function ListingManager({
   function openCreate() {
     setEditingId(null);
     setProductId('');
-    setLinks([{ marketplaceSourceId: marketplaces[0]?.id ?? '', productUrl: '', label: '' }]);
+    setLinks([{ marketplaceSourceId: marketplaces[0]?.id ?? '', productUrl: '', marketplaceProductId: '', label: '' }]);
     setFormError('');
     setShowForm(true);
   }
@@ -124,9 +126,10 @@ export function ListingManager({
         ? listing.purchaseLinks.map((l) => ({
             marketplaceSourceId: l.marketplaceSourceId,
             productUrl: l.productUrl,
+            marketplaceProductId: l.marketplaceProductId ?? '',
             label: l.label ?? '',
           }))
-        : [{ marketplaceSourceId: marketplaces[0]?.id ?? '', productUrl: '', label: '' }],
+        : [{ marketplaceSourceId: marketplaces[0]?.id ?? '', productUrl: '', marketplaceProductId: '', label: '' }],
     );
     setFormError('');
     setShowForm(true);
@@ -143,6 +146,7 @@ export function ListingManager({
         purchaseLinks: links.map((l) => ({
           marketplaceSourceId: l.marketplaceSourceId,
           productUrl: l.productUrl.trim(),
+          marketplaceProductId: l.marketplaceProductId.trim(),
           label: l.label.trim() || undefined,
         })),
       };
@@ -313,7 +317,7 @@ export function ListingManager({
                     onClick={() =>
                       setLinks((prev) => [
                         ...prev,
-                        { marketplaceSourceId: marketplaces[0]?.id ?? '', productUrl: '', label: '' },
+                        { marketplaceSourceId: marketplaces[0]?.id ?? '', productUrl: '', marketplaceProductId: '', label: '' },
                       ])
                     }
                     className="text-xs text-indigo-400 hover:text-indigo-300"
@@ -351,6 +355,21 @@ export function ListingManager({
                         const value = e.target.value;
                         setLinks((prev) =>
                           prev.map((l, i) => (i === index ? { ...l, productUrl: value } : l)),
+                        );
+                      }}
+                      required
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Marketplace product ID (used for verification)"
+                      value={link.marketplaceProductId}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setLinks((prev) =>
+                          prev.map((l, i) =>
+                            i === index ? { ...l, marketplaceProductId: value } : l,
+                          ),
                         );
                       }}
                       required

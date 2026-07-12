@@ -172,14 +172,11 @@ Headers:
 Body:
 {
   "event": "license.verify",
-  "productId": "...",
   "productTitle": "...",
-  "marketplaceSourceId": "...",
   "marketplaceSlug": "gumroad",
   "licenseKey": "...",
   "userId": "...",
-  "userEmail": "...",
-  "ipAddress": "..."
+  "marketplaceProductId": "..."
 }
 
 Respond with:

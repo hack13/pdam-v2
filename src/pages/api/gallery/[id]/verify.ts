@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro';
-import { isIP } from 'node:net';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../../../../db';
 import {
@@ -23,23 +22,6 @@ import {
   recordVerifiedOwnership,
 } from '../../../../lib/linked-copy';
 import { fingerprintLicenseKey } from '../../../../lib/license-key-fingerprint';
-
-function requesterIp(context: Parameters<APIRoute>[0]): string | null {
-  const candidates = [
-    context.clientAddress,
-    context.request.headers.get('x-real-ip')?.trim(),
-    process.env.TRUST_PROXY === 'true'
-      ? context.request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-      : undefined,
-  ];
-
-  for (const candidate of candidates) {
-    if (candidate && isIP(candidate)) return candidate;
-  }
-
-  // Astro's local dev server does not always populate clientAddress.
-  return import.meta.env.DEV ? '127.0.0.1' : null;
-}
 
 export const POST: APIRoute = async (context) => {
   const auth = await requireAuth(context);
@@ -87,6 +69,12 @@ export const POST: APIRoute = async (context) => {
   });
   if (!purchaseLink) {
     return jsonError('Selected marketplace is not available for this listing');
+  }
+  if (!purchaseLink.marketplaceProductId) {
+    return jsonError(
+      'This creator needs to add their marketplace product ID before license verification can run.',
+      503,
+    );
   }
 
   const marketplace = await getMarketplaceMeta(body.marketplaceSourceId);
@@ -140,15 +128,11 @@ export const POST: APIRoute = async (context) => {
   const result = await callVerificationWebhook({
     endpointUrl: webhook.endpointUrl,
     secret: decryptWebhookSecret(webhook.secret),
-    productId: listing.id,
     productTitle: listing.title,
-    marketplaceSourceId: body.marketplaceSourceId,
+    marketplaceProductId: purchaseLink.marketplaceProductId,
     marketplaceSlug: marketplace.slug,
-    marketplaceName: marketplace.name,
     licenseKey,
     userId: auth.user.id,
-    userEmail: auth.user.email ?? null,
-    ipAddress: requesterIp(context),
   });
 
   console.info('[license-verification] Webhook response', {

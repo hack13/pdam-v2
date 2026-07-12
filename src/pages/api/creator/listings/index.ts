@@ -32,6 +32,7 @@ export const POST: APIRoute = async (context) => {
     purchaseLinks?: Array<{
       marketplaceSourceId: string;
       productUrl: string;
+      marketplaceProductId: string;
       label?: string;
     }>;
   };
@@ -47,8 +48,8 @@ export const POST: APIRoute = async (context) => {
   }
 
   for (const link of body.purchaseLinks) {
-    if (!link.marketplaceSourceId || !link.productUrl?.trim()) {
-      return jsonError('Each purchase link needs a marketplace and URL');
+    if (!link.marketplaceSourceId || !link.productUrl?.trim() || !link.marketplaceProductId?.trim()) {
+      return jsonError('Each purchase link needs a marketplace, URL, and marketplace product ID');
     }
     try {
       new URL(link.productUrl.trim());
@@ -88,6 +89,7 @@ export const POST: APIRoute = async (context) => {
         productId: product.id,
         marketplaceSourceId: link.marketplaceSourceId,
         productUrl: link.productUrl.trim(),
+        marketplaceProductId: link.marketplaceProductId.trim(),
         label: link.label?.trim() || null,
         sortOrder: index,
       })),

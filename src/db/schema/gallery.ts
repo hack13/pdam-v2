@@ -14,6 +14,8 @@ export const galleryPurchaseLinks = pgTable(
       .notNull()
       .references(() => marketplaceSources.id),
     productUrl: text('product_url').notNull(),
+    /** Creator's product identifier in the marketplace that hosts this link. */
+    marketplaceProductId: text('marketplace_product_id'),
     label: text('label'),
     sortOrder: integer('sort_order').notNull().default(0),
     createdAt: timestamp('created_at').notNull().defaultNow(),
