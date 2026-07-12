@@ -1,5 +1,6 @@
 export * from './api-keys';
 export * from './auth';
+export * from './beta-invites';
 export * from './better-auth';
 export * from './creator-applications';
 export * from './gallery';

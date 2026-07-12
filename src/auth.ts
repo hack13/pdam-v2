@@ -2,8 +2,11 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { apiKey } from '@better-auth/api-key';
 import { getAuthenticatorName, passkey } from '@better-auth/passkey';
+import { APIError, createAuthMiddleware } from 'better-auth/api';
+import { eq } from 'drizzle-orm';
 import { db } from './db';
 import * as schema from './db/schema';
+import { acceptInviteForEmail, attachAcceptedInviteToUser } from './lib/beta-invites';
 
 const runtimeEnv = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
 const betterAuthUrl = runtimeEnv?.BETTER_AUTH_URL ?? process.env.BETTER_AUTH_URL;
@@ -77,8 +80,35 @@ export const auth = betterAuth({
       // Google for a refresh token when the account is linked.
       accessType: 'offline',
       prompt: 'select_account consent',
+      // Existing members can continue to sign in or link Google, but OAuth
+      // must not become an invite-free registration path during beta.
+      disableSignUp: true,
     },
   } : {},
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path !== '/sign-up/email') return;
+
+      const email = typeof ctx.body?.email === 'string' ? ctx.body.email.trim().toLowerCase() : '';
+      const inviteCode = ctx.request?.headers.get('x-pdam-invite-code')?.trim() ?? null;
+      const existingUser = email ? await db.query.users.findFirst({ where: eq(schema.users.email, email) }) : null;
+      if (existingUser) {
+        throw new APIError('UNPROCESSABLE_ENTITY', { message: 'An account with this email already exists.' });
+      }
+      if (!email || !(await acceptInviteForEmail(inviteCode, email))) {
+        throw new APIError('BAD_REQUEST', { message: 'A valid, available beta invite is required to create an account.' });
+      }
+    }),
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          await attachAcceptedInviteToUser(user.id, user.email, user.createdAt);
+        },
+      },
+    },
+  },
   plugins: [
     apiKey({
       defaultPrefix: 'pdam_',
