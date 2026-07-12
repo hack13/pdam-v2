@@ -1,7 +1,8 @@
 import { createHmac } from 'node:crypto';
 
 function getFingerprintSecret(): string {
-  const secret = process.env.BETTER_AUTH_SECRET;
+  const runtimeEnv = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
+  const secret = runtimeEnv?.BETTER_AUTH_SECRET ?? process.env.BETTER_AUTH_SECRET;
   if (!secret) throw new Error('BETTER_AUTH_SECRET is required to fingerprint license keys');
   return secret;
 }

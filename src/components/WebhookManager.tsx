@@ -26,6 +26,7 @@ export function WebhookManager() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [revealedSecrets, setRevealedSecrets] = useState<Record<string, string>>({});
+  const [copiedSecretId, setCopiedSecretId] = useState<string | null>(null);
 
   useEffect(() => {
     void loadData();
@@ -123,6 +124,16 @@ export function WebhookManager() {
     await loadData();
   }
 
+  async function copySecret(id: string, secret: string) {
+    try {
+      await navigator.clipboard.writeText(secret);
+      setCopiedSecretId(id);
+      window.setTimeout(() => setCopiedSecretId((current) => (current === id ? null : current)), 2_000);
+    } catch {
+      setError('Could not copy the secret. Please select and copy it manually.');
+    }
+  }
+
   function marketplaceName(id: string | null) {
     if (!id) return 'All marketplaces (default)';
     return marketplaces.find((m) => m.id === id)?.name ?? 'Unknown';
@@ -147,6 +158,11 @@ export function WebhookManager() {
 
       <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-zinc-400">
         <p className="font-medium text-zinc-300">Request format</p>
+        <p className="mt-2">
+          PDAM generates a unique signing secret for each verification endpoint. After you add or
+          rotate an endpoint, copy that secret into the service receiving these requests. It is
+          shown only then, so store it somewhere safe.
+        </p>
         <pre className="mt-2 overflow-x-auto rounded-lg bg-black/40 p-3 text-xs text-zinc-300">{`POST {endpoint}
 Headers:
   Content-Type: application/json
@@ -162,7 +178,8 @@ Body:
   "marketplaceSlug": "gumroad",
   "licenseKey": "...",
   "userId": "...",
-  "userEmail": "..."
+  "userEmail": "...",
+  "ipAddress": "..."
 }
 
 Respond with:
@@ -193,22 +210,40 @@ Respond with:
                       <span className="text-zinc-500">Inactive</span>
                     )}
                   </p>
-                  <p className="mt-2 font-mono text-xs text-zinc-500">
-                    Secret:{' '}{revealedSecrets[hook.id] ?? 'Stored securely'}
-                    {revealedSecrets[hook.id] && (
-                      <button
-                        type="button"
-                        onClick={() => setRevealedSecrets((current) => {
-                          const next = { ...current };
-                          delete next[hook.id];
-                          return next;
-                        })}
-                        className="ml-2 text-indigo-400 hover:text-indigo-300"
-                      >
-                        Hide
-                      </button>
-                    )}
-                  </p>
+                  {revealedSecrets[hook.id] ? (
+                    <div className="mt-3 rounded-lg border border-amber-400/30 bg-amber-400/10 p-3">
+                      <p className="text-xs font-medium text-amber-200">
+                        Save this signing secret now — it will not be shown again.
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <code className="break-all font-mono text-xs text-amber-100">
+                          {revealedSecrets[hook.id]}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => void copySecret(hook.id, revealedSecrets[hook.id])}
+                          className="rounded border border-amber-300/30 px-2 py-1 text-xs text-amber-100 hover:bg-amber-300/10"
+                        >
+                          {copiedSecretId === hook.id ? 'Copied' : 'Copy secret'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRevealedSecrets((current) => {
+                            const next = { ...current };
+                            delete next[hook.id];
+                            return next;
+                          })}
+                          className="text-xs text-amber-200/80 hover:text-amber-100"
+                        >
+                          Hide
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-xs text-zinc-500">
+                      Signing secret stored securely. Rotate it to receive a new secret.
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button

@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { isIP } from 'node:net';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../../../../db';
 import {
@@ -22,6 +23,23 @@ import {
   recordVerifiedOwnership,
 } from '../../../../lib/linked-copy';
 import { fingerprintLicenseKey } from '../../../../lib/license-key-fingerprint';
+
+function requesterIp(context: Parameters<APIRoute>[0]): string | null {
+  const candidates = [
+    context.clientAddress,
+    context.request.headers.get('x-real-ip')?.trim(),
+    process.env.TRUST_PROXY === 'true'
+      ? context.request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      : undefined,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate && isIP(candidate)) return candidate;
+  }
+
+  // Astro's local dev server does not always populate clientAddress.
+  return import.meta.env.DEV ? '127.0.0.1' : null;
+}
 
 export const POST: APIRoute = async (context) => {
   const auth = await requireAuth(context);
@@ -113,6 +131,12 @@ export const POST: APIRoute = async (context) => {
     });
   }
 
+  console.info('[license-verification] Calling webhook endpoint', {
+    endpointUrl: webhook.endpointUrl,
+    productId,
+    marketplaceSourceId: body.marketplaceSourceId,
+  });
+
   const result = await callVerificationWebhook({
     endpointUrl: webhook.endpointUrl,
     secret: decryptWebhookSecret(webhook.secret),
@@ -122,6 +146,17 @@ export const POST: APIRoute = async (context) => {
     marketplaceSlug: marketplace.slug,
     marketplaceName: marketplace.name,
     licenseKey,
+    userId: auth.user.id,
+    userEmail: auth.user.email ?? null,
+    ipAddress: requesterIp(context),
+  });
+
+  console.info('[license-verification] Webhook response', {
+    endpointUrl: webhook.endpointUrl,
+    productId,
+    marketplaceSourceId: body.marketplaceSourceId,
+    verified: result.verified,
+    reason: result.reason ?? null,
   });
 
   if (!result.verified) {
@@ -147,7 +182,12 @@ export const POST: APIRoute = async (context) => {
       });
     }
 
-    return jsonError('License key could not be verified', 403);
+    return jsonError(
+      result.reason
+        ? `License key could not be verified: ${result.reason}`
+        : 'License key could not be verified',
+      403,
+    );
   }
 
   try {

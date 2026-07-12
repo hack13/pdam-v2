@@ -3,7 +3,11 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:
 const ENCRYPTED_PREFIX = 'enc:v1:';
 
 function encryptionKey(): Buffer {
-  const configured = process.env.WEBHOOK_SECRET_ENCRYPTION_KEY ?? process.env.BETTER_AUTH_SECRET;
+  const runtimeEnv = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
+  const configured = runtimeEnv?.WEBHOOK_SECRET_ENCRYPTION_KEY
+    ?? runtimeEnv?.BETTER_AUTH_SECRET
+    ?? process.env.WEBHOOK_SECRET_ENCRYPTION_KEY
+    ?? process.env.BETTER_AUTH_SECRET;
   if (!configured) throw new Error('WEBHOOK_SECRET_ENCRYPTION_KEY or BETTER_AUTH_SECRET is required');
   if (/^[0-9a-f]{64}$/i.test(configured)) return Buffer.from(configured, 'hex');
   return createHash('sha256').update(configured).digest();

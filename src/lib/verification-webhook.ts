@@ -138,7 +138,13 @@ async function postVerificationWebhook(
         'X-PDAM-Signature': signature,
         'User-Agent': 'PDAM-License-Verify/1.0',
       },
-      lookup: (_hostname, _options, callback) => callback(null, address.address, address.family),
+      lookup: (_hostname, options, callback) => {
+        // Node 22 may request all resolved addresses for automatic family
+        // selection. Match the callback shape it asks for while still pinning
+        // the connection to an address we have already validated.
+        if (options.all) return callback(null, [address]);
+        return callback(null, address.address, address.family);
+      },
       signal,
     }, (response) => {
       const chunks: Buffer[] = [];
@@ -223,6 +229,9 @@ export async function callVerificationWebhook(params: {
   marketplaceSlug: string | null;
   marketplaceName: string | null;
   licenseKey: string;
+  userId: string;
+  userEmail: string | null;
+  ipAddress: string | null;
 }): Promise<VerificationWebhookResult> {
   let endpoint: ValidatedWebhookEndpoint;
   try {
@@ -243,11 +252,30 @@ export async function callVerificationWebhook(params: {
     marketplaceSlug: params.marketplaceSlug,
     marketplaceName: params.marketplaceName,
     licenseKey: params.licenseKey,
+    userId: params.userId,
+    userEmail: params.userEmail,
+    ipAddress: params.ipAddress,
   };
 
   const body = JSON.stringify(payload);
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const signature = signWebhookPayload(params.secret, body, timestamp);
+
+  const runtimeEnv = (import.meta as unknown as { env?: { DEV?: boolean } }).env;
+  if (runtimeEnv?.DEV) {
+    console.info('[license-verification] Raw webhook request', {
+      url: endpoint.url.toString(),
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body),
+        'X-PDAM-Timestamp': timestamp,
+        'X-PDAM-Signature': signature,
+        'User-Agent': 'PDAM-License-Verify/1.0',
+      },
+      body,
+    });
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15_000);

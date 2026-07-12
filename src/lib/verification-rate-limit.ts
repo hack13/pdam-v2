@@ -92,16 +92,19 @@ async function checkSubjectLimit(
       INITIAL_BACKOFF_SECONDS * (2 ** Math.max(0, attemptCount - 1)),
     );
     const nextAllowedAt = new Date(Date.now() + backoffSeconds * 1000);
+    // postgres-js cannot bind a Date passed through Drizzle's raw `sql` template.
+    // Use PostgreSQL's accepted ISO timestamp representation instead.
+    const nextAllowedAtValue = nextAllowedAt.toISOString();
 
     await tx.execute(sql`
       INSERT INTO verification_rate_limits (
         user_id, product_id, marketplace_source_id, attempt_count, next_allowed_at, updated_at
       ) VALUES (
-        ${userId}, ${productId}, ${marketplaceSourceId}, ${attemptCount}, ${nextAllowedAt}, NOW()
+        ${userId}, ${productId}, ${marketplaceSourceId}, ${attemptCount}, ${nextAllowedAtValue}, NOW()
       )
       ON CONFLICT (user_id, product_id, marketplace_source_id) DO UPDATE SET
         attempt_count = ${attemptCount},
-        next_allowed_at = ${nextAllowedAt},
+        next_allowed_at = ${nextAllowedAtValue},
         updated_at = NOW()
     `);
 
