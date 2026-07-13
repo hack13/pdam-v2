@@ -1,0 +1,26 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import AdminNav from '../../../components/AdminNav.astro';
+import { FeedbackAdmin } from '../../../components/FeedbackAdmin';
+import { getAdminUserFromContext } from '../../../lib/admin';
+
+const adminUser = await getAdminUserFromContext(Astro);
+if (!adminUser) {
+  return Astro.redirect('/dashboard');
+}
+---
+
+<BaseLayout title="Beta Feedback - Admin - TailCache" isAuthenticated={true}>
+  <div class="app-page">
+    <div class="app-header">
+      <div>
+        <p class="app-kicker">Beta signal</p>
+        <h1 class="app-title">Feedback queue</h1>
+        <p class="app-description">Review member reports, inspect screenshot evidence, and record the next action.</p>
+      </div>
+    </div>
+
+    <AdminNav current="feedback" />
+    <FeedbackAdmin client:load />
+  </div>
+</BaseLayout>

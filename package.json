@@ -24,6 +24,7 @@
     "db:encrypt-webhook-secrets": "node scripts/encrypt-webhook-secrets.mjs",
     "db:apply-verification-rate-limit": "node scripts/apply-verification-rate-limit-migration.mjs",
     "db:apply-marketplace-product-id": "node scripts/apply-marketplace-product-id-migration.mjs",
+    "db:apply-feedback": "node scripts/apply-feedback-migration.mjs",
     "db:hash-ownership-verification-license-keys": "node scripts/hash-ownership-verification-license-keys.mjs",
     "uploads:cleanup": "node scripts/cleanup-pending-uploads.mjs",
     "db:studio": "drizzle-kit studio",

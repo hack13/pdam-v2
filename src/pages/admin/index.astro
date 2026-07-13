@@ -153,7 +153,19 @@ const inventoryStats = [
       </div>
     </section>
 
-    <section class="mt-6 grid gap-4 md:grid-cols-2" aria-label="Admin actions">
+    <section class="mt-6 grid gap-4 md:grid-cols-3" aria-label="Admin actions">
+      <a href="/admin/feedback" class="app-panel group relative overflow-hidden p-5 transition-all hover:-translate-y-0.5 hover:border-violet-400/30 sm:p-6">
+        <div class="absolute inset-y-0 left-0 w-px bg-violet-400/70" aria-hidden="true"></div>
+        <div class="flex items-start justify-between gap-5">
+          <div>
+            <p class="app-kicker !text-violet-300">Beta signal</p>
+            <h2 class="mt-2 text-lg font-semibold text-white">Feedback queue</h2>
+            <p class="mt-1 text-sm leading-6 text-zinc-400">Triage reported issues, ideas, and screenshot evidence from beta members.</p>
+          </div>
+          <span class="text-violet-300 transition-transform group-hover:translate-x-1" aria-hidden="true">&rarr;</span>
+        </div>
+      </a>
+
       <a href="/admin/creator-applications" class="app-panel group relative overflow-hidden p-5 transition-all hover:-translate-y-0.5 hover:border-cyan-400/30 sm:p-6">
         <div class="absolute inset-y-0 left-0 w-px bg-cyan-400/60" aria-hidden="true"></div>
         <div class="flex items-start justify-between gap-5">

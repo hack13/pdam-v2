@@ -1,6 +1,6 @@
 ---
 interface Props {
-  current: 'dashboard' | 'users' | 'storage' | 'creator-applications';
+  current: 'dashboard' | 'users' | 'storage' | 'creator-applications' | 'feedback';
 }
 
 const { current } = Astro.props;
@@ -9,6 +9,7 @@ const links = [
   { key: 'dashboard', label: 'Overview', href: '/admin' },
   { key: 'users', label: 'Users', href: '/admin/users' },
   { key: 'creator-applications', label: 'Creator applications', href: '/admin/creator-applications' },
+  { key: 'feedback', label: 'Beta feedback', href: '/admin/feedback' },
   { key: 'storage', label: 'Storage', href: '/admin/storage' },
 ] as const;
 ---
