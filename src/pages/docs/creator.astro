@@ -1,0 +1,35 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+---
+
+<DocsLayout
+  title="Creator"
+  section="creator"
+  eyebrow="Creator guide"
+  description="Claim the identity already associated with your catalog, publish products, and let your own service make license decisions."
+>
+  <section>
+    <h2 class="text-2xl font-semibold text-white">Claim your catalog name</h2>
+    <div class="mt-5 grid gap-4 md:grid-cols-2">
+      <article class="app-panel p-5"><p class="font-mono text-xs text-violet-300">1. Submit a claim</p><p class="mt-2 text-sm leading-6 text-zinc-300">Go to <a href="/creator/apply" class="text-violet-300 hover:text-violet-200">Creator onboarding</a>, search the catalog for your name, select it, and provide proof URLs plus an optional note. If your name is not in the catalog yet, request it as a new creator name.</p></article>
+      <article class="app-panel p-5"><p class="font-mono text-xs text-violet-300">2. Wait for approval</p><p class="mt-2 text-sm leading-6 text-zinc-300">An administrator reviews every claim to reduce impersonation. Approval links your account to that creator identity and unlocks the Creator dashboard.</p></article>
+    </div>
+  </section>
+
+  <section class="mt-10 border-t border-white/10 pt-10">
+    <p class="font-mono text-xs uppercase tracking-[0.14em] text-violet-300">Catalog publishing</p>
+    <h2 class="mt-2 text-2xl font-semibold text-white">List a product</h2>
+    <p class="mt-4 text-sm leading-6 text-zinc-300">After approval, open <a href="/creator/listings" class="text-violet-300 hover:text-violet-200">Listings</a>. Assets already tagged with your linked creator become available to publish. Add their listing details and purchase links, then publish.</p>
+  </section>
+
+  <section class="mt-10 border-t border-white/10 pt-10">
+    <p class="font-mono text-xs uppercase tracking-[0.14em] text-cyan-300">Ownership infrastructure</p>
+    <h2 class="mt-2 text-2xl font-semibold text-white">Set up a verification endpoint</h2>
+    <p class="mt-3 text-sm leading-6 text-zinc-400">TailCache sends license checks to your service so the final ownership decision stays under your control.</p>
+    <ol class="mt-5 space-y-3 rounded-2xl border border-cyan-400/15 bg-cyan-500/[0.045] p-5 text-sm leading-6 text-zinc-300 sm:p-6">
+      <li><span class="mr-2 font-mono text-cyan-300">01</span>Open <a href="/creator/webhooks" class="text-cyan-300 hover:text-cyan-200">Verification tooling</a> and select <strong class="font-medium text-white">Add endpoint</strong>.</li>
+      <li><span class="mr-2 font-mono text-cyan-300">02</span>Enter your public HTTPS endpoint and choose either all marketplaces or one marketplace. Save the signing secret displayed after creation; it is only shown then (and after a rotation).</li>
+      <li><span class="mr-2 font-mono text-cyan-300">03</span>Your service receives a signed POST containing the license key, product title, marketplace information, and user ID. Verify <code class="rounded bg-black/25 px-1.5 py-0.5 font-mono text-xs text-cyan-100">X-PDAM-Signature</code> as HMAC-SHA256 of <code class="rounded bg-black/25 px-1.5 py-0.5 font-mono text-xs text-cyan-100">{`{timestamp}.{body}`}</code> using your secret, then return <code class="rounded bg-black/25 px-1.5 py-0.5 font-mono text-xs text-cyan-100">{`{ "verified": true }`}</code> or a false response with a reason.</li>
+    </ol>
+  </section>
+</DocsLayout>

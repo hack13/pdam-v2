@@ -36,14 +36,13 @@ const { isAuthenticated = false } = Astro.props;
           <li><a href="/docs" class="text-sm text-zinc-400 hover:text-white">Docs</a></li>
           <li><a href="/api-docs" class="text-sm text-zinc-400 hover:text-white">API Reference</a></li>
           <li><a href={isAuthenticated ? '/dashboard' : '/login'} class="text-sm text-zinc-400 hover:text-white">{isAuthenticated ? 'Account' : 'Sign in'}</a></li>
-          <li><a href={isAuthenticated ? '/assets/new' : '/signup'} class="text-sm text-zinc-400 hover:text-white">{isAuthenticated ? 'Add an asset' : 'Create account'}</a></li>
         </ul>
       </div>
     </div>
 
     <div class="mt-12 flex flex-col gap-2 border-t border-white/10 pt-7 sm:flex-row sm:items-center sm:justify-between">
       <p class="text-sm text-zinc-500">
-        &copy; {new Date().getFullYear()} TailCache
+        TailCache - A Product of CyberFurz LLC
       </p>
       <p class="font-mono text-xs text-zinc-600">Collected · protected · within reach</p>
     </div>

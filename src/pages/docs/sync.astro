@@ -1,0 +1,52 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+---
+
+<DocsLayout
+  title="Sync"
+  section="sync"
+  eyebrow="Sync guide"
+  description="Keep independent copies in storage you control, then run an immediate backup or set a recurring schedule."
+>
+  <section>
+    <h2 class="text-2xl font-semibold text-white">Connect a backup destination</h2>
+    <p class="mt-3 text-sm leading-6 text-zinc-400">Open <a href="/sync/destinations" class="text-cyan-300 hover:text-cyan-200">Sync → Destinations</a>, choose a storage provider, and use Test &amp; save. After connecting, use Sync now for an initial copy and optionally enable an automatic daily or weekly schedule.</p>
+  </section>
+
+  <section class="mt-10 border-t border-white/10 pt-10">
+    <p class="font-mono text-xs uppercase tracking-[0.14em] text-cyan-300">S3-compatible</p>
+    <h2 class="mt-2 text-2xl font-semibold text-white">S3 / R2 / compatible storage</h2>
+    <ol class="mt-5 space-y-3 text-sm leading-6 text-zinc-300">
+      <li>1. Choose <strong class="font-medium text-white">S3-compatible</strong>.</li>
+      <li>2. Enter a destination name, provider service endpoint, bucket, region, access key, and secret key.</li>
+      <li>3. Keep path-style requests enabled if your provider requires it. For Cloudflare R2, the region is commonly <code class="rounded bg-black/25 px-1 py-0.5 font-mono text-[0.68rem] text-cyan-100">auto</code>; AWS normally needs the bucket’s region.</li>
+      <li>4. Optionally choose a remote folder, then test and save.</li>
+    </ol>
+  </section>
+
+  <section class="mt-10 border-t border-white/10 pt-10">
+    <p class="font-mono text-xs uppercase tracking-[0.14em] text-cyan-300">WebDAV</p>
+    <h2 class="mt-2 text-2xl font-semibold text-white">Nextcloud or another WebDAV server</h2>
+    <ol class="mt-5 space-y-3 text-sm leading-6 text-zinc-300">
+      <li>1. Choose <strong class="font-medium text-white">WebDAV / Nextcloud</strong>.</li>
+      <li>2. Enter a name, the HTTPS WebDAV collection URL, username, and password or app password.</li>
+      <li>3. Optionally set a remote folder below that collection, then test and save.</li>
+      <li>4. Use a public HTTPS endpoint; local-network and non-HTTPS endpoints cannot be connected.</li>
+    </ol>
+  </section>
+
+  <section class="mt-10 border-t border-white/10 pt-10">
+    <p class="font-mono text-xs uppercase tracking-[0.14em] text-cyan-300">Google Drive</p>
+    <h2 class="mt-2 text-2xl font-semibold text-white">A dedicated Drive folder</h2>
+    <ol class="mt-5 space-y-3 text-sm leading-6 text-zinc-300">
+      <li>1. Choose <strong class="font-medium text-white">Google Drive</strong> and optionally name the Drive folder.</li>
+      <li>2. Select <strong class="font-medium text-white">Connect Google Drive</strong> and complete Google authorization.</li>
+      <li>3. TailCache works only in the folder it creates and its contents, rather than across your whole Drive.</li>
+      <li>4. Sync now or set an automatic schedule once the destination appears.</li>
+    </ol>
+    <div class="mt-6 rounded-2xl border border-amber-400/25 bg-amber-400/[0.07] p-5 sm:flex sm:gap-4">
+      <span class="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-amber-200">Google Drive notice</span>
+      <p class="mt-2 text-sm leading-6 text-amber-100/85 sm:mt-0">TailCache’s Google Drive integration is currently unverified. Google will show warnings during authorization; this is expected. Review the consent screen carefully and continue only if you trust this TailCache installation.</p>
+    </div>
+  </section>
+</DocsLayout>
