@@ -1,0 +1,141 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import GalleryNav from '../../components/GalleryNav.astro';
+import { getSessionFromContext } from '../../lib/session';
+import { db } from '../../db';
+import { creators, products } from '../../db/schema';
+import { and, asc, desc, eq, ilike, isNotNull, or, sql } from 'drizzle-orm';
+
+const session = await getSessionFromContext(Astro);
+const isAuthenticated = !!session?.user;
+const search = Astro.url.searchParams.get('q')?.trim() ?? '';
+
+const creatorRows = await db
+  .select({
+    id: creators.id,
+    name: creators.name,
+    slug: creators.slug,
+    bio: creators.bio,
+    avatarUrl: creators.avatarUrl,
+    profileImageUrl: creators.profileImageUrl,
+    headerImageUrl: creators.headerImageUrl,
+    updatedAt: creators.updatedAt,
+    listingCount: sql<number>`count(${products.id})::int`,
+    latestListingAt: sql<Date>`max(${products.updatedAt})`,
+  })
+  .from(creators)
+  .innerJoin(
+    products,
+    and(
+      eq(products.ownerUserId, creators.enrolledByUserId),
+      eq(products.isGalleryListed, true),
+      sql`${creators.id} = ANY(${products.creatorIds})`,
+    ),
+  )
+  .where(and(
+    isNotNull(creators.enrolledByUserId),
+    ...(search
+      ? [or(ilike(creators.name, `%${search}%`), ilike(creators.bio, `%${search}%`))!]
+      : []),
+  ))
+  .groupBy(creators.id)
+  .orderBy(desc(sql`max(${products.updatedAt})`), asc(creators.name));
+
+const withVersion = (url: string | null, updatedAt: Date) =>
+  url?.startsWith('/api/') ? `${url}?v=${updatedAt.getTime()}` : url;
+---
+
+<BaseLayout title="Creators - Gallery - TailCache" isAuthenticated={isAuthenticated}>
+  <div class="app-page">
+    <div class="app-header">
+      <div>
+        <p class="app-kicker">Creator marketplace</p>
+        <h1 class="app-title">Creators</h1>
+        <p class="app-description">Find registered creators and explore the assets they publish.</p>
+      </div>
+    </div>
+
+    <GalleryNav current="creators" />
+
+    <form method="get" action="/gallery/creators" class="mb-7">
+      <div class="relative">
+        <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />
+        </svg>
+        <label for="creator-search" class="sr-only">Search creators</label>
+        <input
+          id="creator-search"
+          type="search"
+          name="q"
+          aria-label="Search creators"
+          value={search}
+          placeholder="Search creators…"
+          class="field-control !pl-11"
+        />
+      </div>
+    </form>
+
+    {creatorRows.length === 0 ? (
+      <div class="rounded-xl border border-dashed border-white/10 bg-white/5 p-12 text-center">
+        <h2 class="font-display text-lg font-semibold text-white">
+          {search ? 'No creators found' : 'No creators have published yet'}
+        </h2>
+        <p class="mt-1 text-sm text-zinc-400">
+          {search ? 'Try a different name or keyword.' : 'Registered creators will appear here after listing their first asset.'}
+        </p>
+      </div>
+    ) : (
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {creatorRows.map((creator) => {
+          const profileImageUrl = withVersion(creator.profileImageUrl ?? creator.avatarUrl, creator.updatedAt);
+          const headerImageUrl = withVersion(creator.headerImageUrl, creator.updatedAt);
+          return (
+            <a
+              href={`/creators/${creator.slug}`}
+              class="group overflow-hidden rounded-2xl border border-white/10 bg-[#121722] shadow-[0_22px_60px_rgba(0,0,0,0.16)] transition-all duration-200 hover:-translate-y-1 hover:border-indigo-400/35 hover:shadow-[0_26px_70px_rgba(66,44,140,0.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            >
+              <div class="relative h-28 overflow-hidden border-b border-white/10 bg-[#0d121c]">
+                {headerImageUrl ? (
+                  <img src={headerImageUrl} alt="" loading="lazy" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.025]" />
+                ) : (
+                  <div class="absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(126,63,242,0.42),transparent_45%),radial-gradient(circle_at_85%_60%,rgba(14,165,233,0.18),transparent_38%),linear-gradient(145deg,#171d2a,#0d121c)]"></div>
+                )}
+                <div class="absolute inset-0 bg-gradient-to-t from-[#121722]/75 via-transparent to-transparent"></div>
+              </div>
+
+              <div class="relative px-5 pb-5">
+                <div class="-mt-9 flex items-end justify-between gap-4">
+                  <div class="flex h-[4.5rem] w-[4.5rem] items-center justify-center overflow-hidden rounded-2xl border-[3px] border-[#121722] bg-[#171d2a] shadow-xl">
+                    {profileImageUrl ? (
+                      <img src={profileImageUrl} alt={creator.name} loading="lazy" class="h-full w-full object-cover" />
+                    ) : (
+                      <span class="font-display text-2xl font-bold text-indigo-300">{creator.name.slice(0, 1).toUpperCase()}</span>
+                    )}
+                  </div>
+                  <span class="mb-1 inline-flex items-center gap-1.5 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-cyan-300">
+                    <span class="h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.7)]"></span>
+                    Registered
+                  </span>
+                </div>
+
+                <h2 class="mt-4 truncate font-display text-xl font-semibold text-white transition-colors group-hover:text-indigo-300">{creator.name}</h2>
+                {creator.bio ? (
+                  <p class="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-zinc-400">{creator.bio}</p>
+                ) : (
+                  <p class="mt-2 min-h-10 text-sm leading-5 text-zinc-500">Explore this creator&apos;s published work.</p>
+                )}
+
+                <div class="mt-5 flex items-center justify-between border-t border-white/10 pt-4">
+                  <span class="font-mono text-[0.65rem] uppercase tracking-[0.12em] text-zinc-500">
+                    {creator.listingCount} {creator.listingCount === 1 ? 'asset' : 'assets'}
+                  </span>
+                  <span class="text-sm font-medium text-zinc-300 transition-transform group-hover:translate-x-0.5">View profile <span aria-hidden="true">→</span></span>
+                </div>
+              </div>
+            </a>
+          );
+        })}
+      </div>
+    )}
+  </div>
+</BaseLayout>

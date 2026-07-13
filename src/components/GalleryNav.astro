@@ -1,0 +1,23 @@
+---
+interface Props {
+  current: 'assets' | 'creators';
+}
+
+const { current } = Astro.props;
+const items = [
+  { id: 'assets', label: 'Assets', href: '/gallery' },
+  { id: 'creators', label: 'Creators', href: '/gallery/creators' },
+] as const;
+---
+
+<nav aria-label="Gallery sections" class="app-nav">
+  {items.map((item) => (
+    <a
+      href={item.href}
+      class="app-nav-link"
+      aria-current={current === item.id ? 'page' : undefined}
+    >
+      {item.label}
+    </a>
+  ))}
+</nav>
