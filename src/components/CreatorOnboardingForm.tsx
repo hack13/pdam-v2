@@ -155,18 +155,18 @@ export function CreatorOnboardingForm({
   if (isCreator && linked && !pending) {
     return (
       <div className="space-y-4">
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-6">
-          <h2 className="text-lg font-semibold text-white">Verified creator</h2>
+        <div className="app-panel-raised relative overflow-hidden border-cyan-400/20 p-6 before:absolute before:inset-y-0 before:left-0 before:w-px before:bg-cyan-400/70">
+          <p className="font-mono text-[0.68rem] uppercase tracking-[0.16em] text-cyan-300">Verified identity</p>
+          <h2 className="mt-2 text-xl font-semibold text-white">{linked.name}</h2>
           <p className="mt-1 text-sm text-zinc-300">
-            Your account was approved and linked to{' '}
-            <span className="font-medium text-white">{linked.name}</span>.
+            Your account is approved to represent this catalog across PDAM.
           </p>
           <p className="mt-3 text-xs text-zinc-500">
             To change which catalog creator you represent, submit a new application below. An admin
             must approve the change.
           </p>
         </div>
-        <details className="rounded-xl border border-white/10 bg-white/5 p-6">
+        <details className="app-panel group p-5 sm:p-6">
           <summary className="cursor-pointer text-sm font-medium text-indigo-300">
             Request a creator profile change
           </summary>

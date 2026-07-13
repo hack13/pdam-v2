@@ -4,51 +4,18 @@ interface Props {
 }
 
 const { current } = Astro.props;
+const links = [
+  { key: 'dashboard', label: 'Overview', href: '/creator' },
+  { key: 'profile', label: 'Creator profile', href: '/creator/profile' },
+  { key: 'listings', label: 'Listings', href: '/creator/listings' },
+  { key: 'webhooks', label: 'Verification', href: '/creator/webhooks' },
+] as const;
 ---
 
-<nav class="mb-8 flex flex-wrap gap-2 border-b border-white/10 pb-4">
-  <a
-    href="/creator"
-    class:list={[
-      'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-      current === 'dashboard'
-        ? 'bg-indigo-500/20 text-indigo-300'
-        : 'text-zinc-400 hover:bg-white/5 hover:text-white',
-    ]}
-  >
-    Overview
-  </a>
-  <a
-    href="/creator/profile"
-    class:list={[
-      'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-      current === 'profile'
-        ? 'bg-indigo-500/20 text-indigo-300'
-        : 'text-zinc-400 hover:bg-white/5 hover:text-white',
-    ]}
-  >
-    Creator profile
-  </a>
-  <a
-    href="/creator/listings"
-    class:list={[
-      'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-      current === 'listings'
-        ? 'bg-indigo-500/20 text-indigo-300'
-        : 'text-zinc-400 hover:bg-white/5 hover:text-white',
-    ]}
-  >
-    Listings
-  </a>
-  <a
-    href="/creator/webhooks"
-    class:list={[
-      'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-      current === 'webhooks'
-        ? 'bg-indigo-500/20 text-indigo-300'
-        : 'text-zinc-400 hover:bg-white/5 hover:text-white',
-    ]}
-  >
-    Verification
-  </a>
+<nav aria-label="Creator studio navigation" class="app-nav">
+  {links.map((link) => (
+    <a href={link.href} class="app-nav-link" aria-current={current === link.key ? 'page' : undefined}>
+      {link.label}
+    </a>
+  ))}
 </nav>

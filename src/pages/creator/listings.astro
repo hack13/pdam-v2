@@ -33,10 +33,13 @@ const initialLinkedCreator = linked
 ---
 
 <BaseLayout title="Creator Listings - PDAM" isAuthenticated={true}>
-  <div class="mx-auto max-w-7xl px-6 py-12">
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-white">Content Creator</h1>
-      <p class="mt-1 text-sm text-zinc-400">Manage which of your assets appear in the gallery.</p>
+  <div class="app-page">
+    <div class="app-header">
+      <div>
+        <p class="app-kicker">Creator studio</p>
+        <h1 class="app-title">Listings</h1>
+        <p class="app-description">Choose which assets appear publicly and connect each listing to its purchase pages.</p>
+      </div>
     </div>
 
     <CreatorNav current="listings" />

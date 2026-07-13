@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import CreatorNav from '../../components/CreatorNav.astro';
+import BrandMark from '../../components/BrandMark.astro';
 import { getCreatorUserFromContext, getLinkedCreator } from '../../lib/creator';
 import { getCreatorDashboardStats } from '../../lib/creator-stats';
 
@@ -18,50 +19,71 @@ const stats = await getCreatorDashboardStats(user.id);
 ---
 
 <BaseLayout title="Creator Dashboard - PDAM" isAuthenticated={true}>
-  <div class="mx-auto max-w-7xl px-6 py-12">
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-white">Content Creator</h1>
-      <p class="mt-1 text-sm text-zinc-400">
-        Track listings, ownership confirmations, and marketplace interest.
-      </p>
+  <div class="app-page">
+    <div class="app-header">
+      <div>
+        <p class="app-kicker">Creator studio</p>
+        <h1 class="app-title">Overview</h1>
+        <p class="app-description">Publish your catalog, track buyer trust, and manage how PDAM verifies ownership.</p>
+      </div>
     </div>
 
     <CreatorNav current="dashboard" />
 
-    <div class="mb-8 rounded-xl border border-white/10 bg-white/5 p-5">
-      <p class="text-sm text-zinc-400">Linked as</p>
-      <p class="mt-1 text-lg font-medium text-white">{linked.name}</p>
-      <a href="/creator/profile" class="mt-2 inline-block text-sm text-indigo-400 hover:text-indigo-300">
-        Manage profile &rarr;
-      </a>
+    <div class="app-panel-raised relative mb-8 overflow-hidden p-6 sm:p-8">
+      <div class="pointer-events-none absolute -right-10 -top-12 opacity-[0.12]" aria-hidden="true">
+        <BrandMark class="h-48 w-48 object-contain" alt="" />
+      </div>
+      <div class="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center gap-4">
+          <div class="flex h-14 w-14 items-center justify-center rounded-2xl border border-indigo-400/25 bg-indigo-500/10">
+            <BrandMark class="h-10 w-10 object-contain" alt="" />
+          </div>
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <p class="app-kicker !text-zinc-500">Verified catalog identity</p>
+              <span class="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2 py-0.5 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-cyan-300">Live</span>
+            </div>
+            <h2 class="mt-1 text-2xl font-semibold text-white sm:text-3xl">{linked.name}</h2>
+            <p class="mt-1 text-sm text-zinc-400">Your public listings and ownership checks resolve to this creator.</p>
+          </div>
+        </div>
+        <a href="/creator/profile" class="btn-secondary shrink-0">Manage identity</a>
+      </div>
     </div>
 
-    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      <div class="rounded-xl border border-white/10 bg-white/5 p-6">
-        <p class="text-sm text-zinc-400">Listed items</p>
-        <p class="mt-1 text-3xl font-bold text-white">{stats.listingCount}</p>
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div class="app-stat p-6">
+        <p class="app-kicker !text-zinc-500">Published listings</p>
+        <p class="mt-2 font-display text-3xl font-bold text-white">{stats.listingCount}</p>
         <a href="/creator/listings" class="mt-2 inline-block text-sm text-indigo-400 hover:text-indigo-300">
-          Manage listings &rarr;
+          Manage catalog &rarr;
         </a>
       </div>
 
-      <div class="rounded-xl border border-white/10 bg-white/5 p-6">
-        <p class="text-sm text-zinc-400">Ownership confirmations</p>
-        <p class="mt-1 text-3xl font-bold text-white">{stats.ownershipConfirmations}</p>
+      <div class="app-stat p-6">
+        <p class="app-kicker !text-zinc-500">Verified owners</p>
+        <p class="mt-2 font-display text-3xl font-bold text-white">{stats.ownershipConfirmations}</p>
         <p class="mt-2 text-xs text-zinc-500">Buyers who verified a license for your listings</p>
       </div>
 
-      <div class="rounded-xl border border-white/10 bg-white/5 p-6">
-        <p class="text-sm text-zinc-400">Marketplace clicks</p>
-        <p class="mt-1 text-3xl font-bold text-white">{stats.totalMarketplaceClicks}</p>
+      <div class="app-stat p-6">
+        <p class="app-kicker !text-zinc-500">Store visits</p>
+        <p class="mt-2 font-display text-3xl font-bold text-white">{stats.totalMarketplaceClicks}</p>
         <p class="mt-2 text-xs text-zinc-500">Outbound visits to purchase pages</p>
       </div>
     </div>
 
-    <div class="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">
-      <h2 class="mb-4 text-lg font-semibold text-white">Clicks by marketplace</h2>
+    <div class="app-panel mt-6 p-6">
+      <div class="mb-4 flex items-center justify-between gap-4">
+        <div><p class="app-kicker !text-zinc-500">Traffic signal</p><h2 class="mt-1 text-lg font-semibold text-white">Store visits by marketplace</h2></div>
+        <span class="font-mono text-xs text-zinc-500">{stats.totalMarketplaceClicks} total</span>
+      </div>
       {stats.marketplaceClicks.length === 0 ? (
-        <p class="text-sm text-zinc-500">No marketplace clicks recorded yet.</p>
+        <div class="rounded-xl border border-dashed border-white/10 bg-black/10 px-5 py-6">
+          <p class="text-sm text-zinc-400">No store visits recorded yet.</p>
+          <p class="mt-1 text-xs text-zinc-600">Visits appear here when people follow purchase links from your gallery listings.</p>
+        </div>
       ) : (
         <div class="space-y-3">
           {stats.marketplaceClicks.map((row) => (
@@ -74,19 +96,19 @@ const stats = await getCreatorDashboardStats(user.id);
       )}
     </div>
 
-    <div class="mt-8 grid gap-4 sm:grid-cols-2">
+    <div class="mt-6 grid gap-4 sm:grid-cols-2">
       <a
         href="/creator/listings"
-        class="rounded-xl border border-white/10 bg-white/5 p-5 transition-colors hover:border-white/20 hover:bg-white/[0.07]"
+        class="app-panel group p-5 transition-all hover:-translate-y-0.5 hover:border-indigo-400/30"
       >
-        <h3 class="font-medium text-white">Manage listings</h3>
+        <div class="flex items-center justify-between"><h3 class="font-medium text-white">Manage listings</h3><span class="text-indigo-300 transition-transform group-hover:translate-x-1">&rarr;</span></div>
         <p class="mt-1 text-sm text-zinc-400">Publish assets tagged with your linked creator.</p>
       </a>
       <a
         href="/creator/webhooks"
-        class="rounded-xl border border-white/10 bg-white/5 p-5 transition-colors hover:border-white/20 hover:bg-white/[0.07]"
+        class="app-panel group p-5 transition-all hover:-translate-y-0.5 hover:border-cyan-400/30"
       >
-        <h3 class="font-medium text-white">Verification tooling</h3>
+        <div class="flex items-center justify-between"><h3 class="font-medium text-white">Verification tooling</h3><span class="text-cyan-300 transition-transform group-hover:translate-x-1">&rarr;</span></div>
         <p class="mt-1 text-sm text-zinc-400">Connect webhooks so license checks hit your own endpoints.</p>
       </a>
     </div>

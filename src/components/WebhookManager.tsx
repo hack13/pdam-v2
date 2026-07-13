@@ -143,12 +143,12 @@ export function WebhookManager() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-white">License verification webhooks</h2>
+          <p className="app-kicker !text-zinc-500">Ownership infrastructure</p>
+          <h2 className="mt-1 text-xl font-semibold text-white">Verification endpoints</h2>
           <p className="mt-1 text-sm text-zinc-400">
-            PDAM will POST license checks to your endpoint so verification stays under your control
-            (Gumroad, Jinxxy, or custom tooling).
+            PDAM sends license checks to your service so the final ownership decision stays under your control.
           </p>
         </div>
         <button type="button" onClick={() => setShowForm(true)} className="btn-primary">
@@ -156,14 +156,17 @@ export function WebhookManager() {
         </button>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-zinc-400">
-        <p className="font-medium text-zinc-300">Request format</p>
-        <p className="mt-2">
+      <details className="app-panel group p-4 text-sm text-zinc-400">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium text-zinc-200 [&::-webkit-details-marker]:hidden">
+          <span><span className="mr-2 font-mono text-xs text-cyan-300">POST</span> Request format</span>
+          <span className="text-zinc-500 transition-transform group-open:rotate-180">⌄</span>
+        </summary>
+        <p className="mt-4 border-t border-white/[0.07] pt-4">
           PDAM generates a unique signing secret for each verification endpoint. After you add or
           rotate an endpoint, copy that secret into the service receiving these requests. It is
           shown only then, so store it somewhere safe.
         </p>
-        <pre className="mt-2 overflow-x-auto rounded-lg bg-black/40 p-3 text-xs text-zinc-300">{`POST {endpoint}
+        <pre className="mt-3 overflow-x-auto rounded-xl border border-white/[0.06] bg-black/35 p-4 font-mono text-xs text-zinc-300">{`POST {endpoint}
 Headers:
   Content-Type: application/json
   X-PDAM-Timestamp: <unix seconds>
@@ -181,7 +184,7 @@ Body:
 
 Respond with:
 { "verified": true } or { "verified": false, "reason": "..." }`}</pre>
-      </div>
+      </details>
 
       {error && <p className="text-sm text-red-400">{error}</p>}
 
@@ -194,15 +197,19 @@ Respond with:
           {webhooks.map((hook) => (
             <div
               key={hook.id}
-              className="rounded-xl border border-white/10 bg-white/5 p-4"
+              className="app-panel-raised relative overflow-hidden p-5 before:absolute before:inset-y-0 before:left-0 before:w-px before:bg-cyan-400/60"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="truncate font-medium text-white">{hook.endpointUrl}</p>
+                  <div className="flex items-center gap-2">
+                    <span className={`h-2 w-2 rounded-full ${hook.isActive ? 'bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.65)]' : 'bg-zinc-600'}`} aria-hidden="true" />
+                    <span className="font-mono text-[0.62rem] uppercase tracking-[0.14em] text-zinc-500">{hook.isActive ? 'Receiving checks' : 'Paused'}</span>
+                  </div>
+                  <p className="mt-2 break-all font-mono text-sm font-medium text-white">{hook.endpointUrl}</p>
                   <p className="mt-1 text-xs text-zinc-500">
                     {marketplaceName(hook.marketplaceSourceId)} ·{' '}
                     {hook.isActive ? (
-                      <span className="text-emerald-400">Active</span>
+                      <span className="text-cyan-300">Active</span>
                     ) : (
                       <span className="text-zinc-500">Inactive</span>
                     )}
@@ -273,7 +280,7 @@ Respond with:
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-white/10 bg-zinc-900 p-6">
+          <div className="app-panel-raised w-full max-w-md p-5 shadow-2xl sm:p-6">
             <h3 className="text-lg font-semibold text-white">Add verification endpoint</h3>
             <form onSubmit={handleCreate} className="mt-4 space-y-4">
               <div>
@@ -284,7 +291,7 @@ Respond with:
                   value={endpointUrl}
                   onChange={(e) => setEndpointUrl(e.target.value)}
                   placeholder="https://your-tool.example/verify"
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50"
+                  className="field-control font-mono"
                 />
               </div>
               <div>
@@ -292,7 +299,7 @@ Respond with:
                 <select
                   value={marketplaceSourceId}
                   onChange={(e) => setMarketplaceSourceId(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50"
+                  className="field-control"
                 >
                   <option value="">All marketplaces (default)</option>
                   {marketplaces.map((m) => (
@@ -312,7 +319,7 @@ Respond with:
                   Cancel
                 </button>
                 <button type="submit" disabled={saving} className="btn-primary">
-                  {saving ? 'Saving…' : 'Create'}
+                  {saving ? 'Saving…' : 'Add endpoint'}
                 </button>
               </div>
             </form>

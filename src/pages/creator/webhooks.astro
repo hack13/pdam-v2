@@ -11,12 +11,15 @@ if (!creator) {
 ---
 
 <BaseLayout title="Creator Verification - PDAM" isAuthenticated={true}>
-  <div class="mx-auto max-w-7xl px-6 py-12">
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-white">Content Creator</h1>
-      <p class="mt-1 text-sm text-zinc-400">
-        Link your verification tooling for Gumroad, Jinxxy, and other marketplaces.
+  <div class="app-page">
+    <div class="app-header">
+      <div>
+      <p class="app-kicker">Creator studio</p>
+      <h1 class="app-title">Verification</h1>
+      <p class="app-description">
+        Connect the endpoints that confirm ownership for Gumroad, Jinxxy, and other marketplaces.
       </p>
+      </div>
     </div>
 
     <CreatorNav current="webhooks" />

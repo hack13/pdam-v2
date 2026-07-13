@@ -191,11 +191,12 @@ export function ListingManager({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
+    <div className="space-y-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-white">Gallery listings</h2>
-          <p className="text-sm text-zinc-400">
+          <p className="app-kicker !text-zinc-500">Public catalog</p>
+          <h2 className="mt-1 text-xl font-semibold text-white">Gallery listings</h2>
+          <p className="mt-1 text-sm text-zinc-400">
             {linkedCreator
               ? `Only library assets tagged with ${linkedCreator.name} can be published.`
               : 'Link a creator profile before publishing assets to the gallery.'}
@@ -236,56 +237,40 @@ export function ListingManager({
           <p className="text-sm text-zinc-400">No gallery listings yet.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-white/10">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-white/10 bg-white/[0.03] text-xs uppercase tracking-wide text-zinc-500">
-              <tr>
-                <th className="px-4 py-3 font-medium">Asset</th>
-                <th className="px-4 py-3 font-medium">Owners</th>
-                <th className="px-4 py-3 font-medium">Clicks</th>
-                <th className="px-4 py-3 font-medium">Links</th>
-                <th className="px-4 py-3 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {listings.map((listing) => (
-                <tr key={listing.id} className="border-b border-white/5 last:border-0">
-                  <td className="px-4 py-3">
-                    <a href={`/gallery/${listing.id}`} className="font-medium text-white hover:text-indigo-300">
-                      {listing.title}
-                    </a>
-                  </td>
-                  <td className="px-4 py-3 text-zinc-300">{listing.ownershipConfirmations}</td>
-                  <td className="px-4 py-3 text-zinc-300">{listing.marketplaceClicks}</td>
-                  <td className="px-4 py-3 text-zinc-400">{listing.purchaseLinks.length}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(listing)}
-                        className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-zinc-300 hover:text-white"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleUnlist(listing.id, listing.title)}
-                        className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs text-red-400"
-                      >
-                        Unlist
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid gap-3">
+          {listings.map((listing) => (
+            <article key={listing.id} className="app-panel-raised p-4 sm:p-5">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                <div className="min-w-0 lg:max-w-md">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.7)]" aria-hidden="true" />
+                    <span className="font-mono text-[0.62rem] uppercase tracking-[0.14em] text-cyan-300">Published</span>
+                  </div>
+                  <a href={`/gallery/${listing.id}`} className="mt-2 block truncate font-display text-lg font-semibold text-white hover:text-indigo-300">
+                    {listing.title}
+                  </a>
+                  <a href={`/gallery/${listing.id}`} className="mt-1 inline-block text-xs text-zinc-500 hover:text-white">View public listing &rarr;</a>
+                </div>
+
+                <div className="grid grid-cols-3 overflow-hidden rounded-xl border border-white/[0.08] bg-black/15 lg:w-[23rem]">
+                  <div className="px-3 py-3 text-center"><p className="font-mono text-[0.6rem] uppercase tracking-[0.12em] text-zinc-600">Owners</p><p className="mt-1 font-display text-lg font-semibold text-white">{listing.ownershipConfirmations}</p></div>
+                  <div className="border-x border-white/[0.08] px-3 py-3 text-center"><p className="font-mono text-[0.6rem] uppercase tracking-[0.12em] text-zinc-600">Visits</p><p className="mt-1 font-display text-lg font-semibold text-white">{listing.marketplaceClicks}</p></div>
+                  <div className="px-3 py-3 text-center"><p className="font-mono text-[0.6rem] uppercase tracking-[0.12em] text-zinc-600">Links</p><p className="mt-1 font-display text-lg font-semibold text-white">{listing.purchaseLinks.length}</p></div>
+                </div>
+
+                <div className="flex gap-2 lg:justify-end">
+                  <button type="button" onClick={() => openEdit(listing)} className="btn-secondary !px-4 !py-2">Edit listing</button>
+                  <button type="button" onClick={() => handleUnlist(listing.id, listing.title)} className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-300 transition-colors hover:bg-red-500/15">Unlist</button>
+                </div>
+              </div>
+            </article>
+          ))}
         </div>
       )}
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-white/10 bg-zinc-900 p-6 shadow-xl">
+          <div className="app-panel-raised max-h-[90vh] w-full max-w-lg overflow-y-auto p-5 shadow-2xl sm:p-6">
             <h3 className="text-lg font-semibold text-white">
               {editingId ? 'Edit listing' : 'List asset in gallery'}
             </h3>
@@ -297,7 +282,7 @@ export function ListingManager({
                     value={productId}
                     onChange={(e) => setProductId(e.target.value)}
                     required
-                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50"
+                    className="field-control"
                   >
                     <option value="">Select an asset…</option>
                     {availableAssets.map((a) => (
@@ -358,7 +343,7 @@ export function ListingManager({
                         );
                       }}
                       required
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50"
+                      className="field-control"
                     />
                     <input
                       type="text"
@@ -373,7 +358,7 @@ export function ListingManager({
                         );
                       }}
                       required
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50"
+                      className="field-control font-mono"
                     />
                     <input
                       type="text"
