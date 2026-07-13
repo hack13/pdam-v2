@@ -115,7 +115,7 @@ export function SignInForm() {
         disabled={loading || passkeyLoading || googleLoading}
         className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {loading ? 'Signing in...' : 'Sign In'}
+        {loading ? 'Signing in...' : 'Sign in'}
       </button>
 
       <div className="relative">

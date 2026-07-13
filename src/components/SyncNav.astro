@@ -12,18 +12,9 @@ const links = [
 ] as const;
 ---
 
-<nav aria-label="Sync navigation" class="mb-8 flex flex-wrap items-center gap-2 border-b border-white/10 pb-3">
+<nav aria-label="Sync navigation" class="app-nav">
   {links.map((link) => (
-    <a
-      href={link.href}
-      class:list={[
-        'rounded-lg px-3 py-2 text-sm transition-colors',
-        current === link.key
-          ? 'bg-indigo-500/15 text-indigo-200 ring-1 ring-inset ring-indigo-400/20'
-          : 'text-zinc-400 hover:bg-white/5 hover:text-white',
-      ]}
-      aria-current={current === link.key ? 'page' : undefined}
-    >
+    <a href={link.href} class="app-nav-link" aria-current={current === link.key ? 'page' : undefined}>
       {link.label}
     </a>
   ))}

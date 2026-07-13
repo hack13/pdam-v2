@@ -142,7 +142,7 @@ export function AssetCreateForm() {
           required
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 outline-none transition-colors focus:border-indigo-500 focus:bg-white/10"
+          className="field-control"
           placeholder="My VR Asset Pack"
           maxLength={200}
         />
@@ -168,7 +168,7 @@ export function AssetCreateForm() {
           rows={4}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full resize-none rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 outline-none transition-colors focus:border-indigo-500 focus:bg-white/10"
+          className="field-control resize-none"
           placeholder="Describe your asset..."
           maxLength={10000}
         />
@@ -181,7 +181,7 @@ export function AssetCreateForm() {
         <label htmlFor="tagInput" className="mb-1.5 block text-sm font-medium text-zinc-300">
           Tags <span className="text-zinc-600">(press Enter or comma to add)</span>
         </label>
-        <div className="flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 transition-colors focus-within:border-indigo-500 focus-within:bg-white/10">
+        <div className="flex min-h-[46px] flex-wrap items-center gap-1.5 rounded-xl border border-white/10 bg-black/20 px-3 py-2 transition-colors focus-within:border-indigo-400/60 focus-within:bg-black/30">
           {tags.map((tag) => (
             <span
               key={tag}
@@ -222,7 +222,7 @@ export function AssetCreateForm() {
           type="text"
           value={licenseKey}
           onChange={(e) => setLicenseKey(e.target.value)}
-          className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 outline-none transition-colors focus:border-indigo-500 focus:bg-white/10"
+          className="field-control font-mono"
           placeholder="Enter license key if applicable"
           maxLength={200}
           data-mask="license-key"
@@ -242,7 +242,7 @@ export function AssetCreateForm() {
           id="marketplaceSource"
           value={marketplaceSourceId}
           onChange={(e) => handleMarketplaceChange(e.target.value)}
-          className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 outline-none transition-colors focus:border-indigo-500 focus:bg-white/10"
+          className="field-control"
           disabled={submitting}
         >
           <option value="">Select marketplace...</option>
@@ -264,7 +264,7 @@ export function AssetCreateForm() {
             type="url"
             value={productUrl}
             onChange={(e) => setProductUrl(e.target.value)}
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 outline-none transition-colors focus:border-indigo-500 focus:bg-white/10"
+            className="field-control"
             placeholder="https://example.com/product/123"
             maxLength={500}
             disabled={submitting}
@@ -290,7 +290,7 @@ export function AssetCreateForm() {
           disabled={submitting}
           className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {submitting ? 'Creating...' : 'Create Asset'}
+          {submitting ? 'Creating…' : 'Create asset'}
         </button>
       </div>
     </form>

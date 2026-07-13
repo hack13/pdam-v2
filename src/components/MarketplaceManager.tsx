@@ -96,14 +96,17 @@ export function MarketplaceManager() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-medium text-white">Marketplaces</h3>
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <div>
+          <p className="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-zinc-500">Source directory</p>
+          <h3 className="mt-1 text-lg font-semibold text-white">Connected storefronts</h3>
+        </div>
         {!showForm && (
           <button
             onClick={() => setShowForm(true)}
-            className="text-sm text-indigo-400 hover:text-indigo-300"
+            className="btn-secondary !px-4 !py-2"
           >
-            + Add custom
+            Add custom
           </button>
         )}
       </div>
@@ -115,7 +118,7 @@ export function MarketplaceManager() {
       )}
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-6 p-4 rounded-lg bg-zinc-800/50 border border-white/10">
+        <form onSubmit={handleSubmit} className="app-panel mb-6 p-5">
           <div className="space-y-3">
             <div>
               <label className="block text-sm font-medium text-zinc-300 mb-1">
@@ -128,7 +131,7 @@ export function MarketplaceManager() {
                 placeholder="e.g., My Custom Store"
                 required
                 maxLength={100}
-                className="w-full rounded bg-zinc-900 border border-white/10 px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+                className="field-control"
               />
             </div>
             <div>
@@ -141,14 +144,14 @@ export function MarketplaceManager() {
                 onChange={(e) => setBaseUrl(e.target.value)}
                 placeholder="https://example.com"
                 maxLength={500}
-                className="w-full rounded bg-zinc-900 border border-white/10 px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+                className="field-control"
               />
             </div>
             <div className="flex gap-2">
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary !px-4 !py-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting ? 'Adding...' : 'Add Marketplace'}
               </button>
@@ -171,12 +174,12 @@ export function MarketplaceManager() {
 
       <div className="space-y-3">
         <div>
-          <h4 className="text-sm font-medium text-zinc-400 mb-2">Platform Marketplaces</h4>
-          <div className="space-y-2">
+          <h4 className="mb-3 font-mono text-[0.68rem] font-medium uppercase tracking-[0.18em] text-zinc-500">Platform marketplaces</h4>
+          <div className="grid gap-3 sm:grid-cols-2">
             {platformMarketplaces.map((m) => (
               <div
                 key={m.id}
-                className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/30 border border-white/5"
+                className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-black/15 p-4 transition-colors hover:border-white/15"
               >
                 <div>
                   <div className="font-medium text-white">{m.name}</div>

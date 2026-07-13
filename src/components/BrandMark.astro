@@ -1,0 +1,17 @@
+---
+interface Props {
+  class?: string;
+  alt?: string;
+}
+
+const { class: className = '', alt = 'PDAM prism mark' } = Astro.props;
+---
+
+<img
+  src="/brand/pdam-prism.png"
+  alt={alt}
+  class={className}
+  width="569"
+  height="675"
+  decoding="async"
+/>

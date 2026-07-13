@@ -12,15 +12,18 @@ if (!session?.user) {
 ---
 
 <BaseLayout title="Marketplaces - Library - PDAM" isAuthenticated={true}>
-  <div class="mx-auto max-w-7xl px-6 py-12">
-    <div class="mb-6">
-      <h1 class="text-3xl font-bold text-white">Library</h1>
-      <p class="mt-1 text-sm text-zinc-400">Organize your assets and the marketplaces they come from.</p>
+  <div class="app-page">
+    <div class="app-header">
+      <div>
+        <p class="app-kicker">Sources and storefronts</p>
+        <h1 class="app-title">Marketplaces</h1>
+        <p class="app-description">Keep source links consistent so every asset can be traced back to where it came from.</p>
+      </div>
     </div>
 
     <LibraryNav current="marketplaces" />
 
-    <div class="rounded-xl border border-white/10 bg-white/5 p-6">
+    <div class="app-panel-raised p-5 sm:p-6">
       <MarketplaceManager client:visible />
     </div>
   </div>

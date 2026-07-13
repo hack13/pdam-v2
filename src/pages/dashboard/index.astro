@@ -45,15 +45,16 @@ const memberSince = new Date(user.createdAt).toLocaleDateString('en-US', {
   day: 'numeric',
 });
 
-const fallbackAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=6366f1&color=fff`;
+const fallbackAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=7e3ff2&color=fff`;
 ---
 
 <BaseLayout title="Account Dashboard - PDAM" isAuthenticated={isAuthenticated}>
-  <div class="mx-auto max-w-7xl px-6 py-12">
-    <div class="mb-8 flex items-center justify-between">
+  <div class="app-page">
+    <div class="app-header">
       <div>
-        <h1 class="text-3xl font-bold text-white">Account Dashboard</h1>
-        <p class="mt-1 text-sm text-zinc-400">Manage your account settings and view usage.</p>
+        <p class="app-kicker">Workspace control</p>
+        <h1 class="app-title">Account</h1>
+        <p class="app-description">Your identity, security, storage, and developer access in one place.</p>
       </div>
     </div>
 
@@ -90,8 +91,8 @@ const fallbackAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent
       </div>
     )}
 
-    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      <div class="rounded-xl border border-white/10 bg-white/5 p-6">
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div class="app-stat p-6">
         <div class="flex items-center gap-4">
           <ProfilePicture
             client:load
@@ -105,15 +106,16 @@ const fallbackAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent
         </div>
       </div>
 
-      <div class="rounded-xl border border-white/10 bg-white/5 p-6">
-        <p class="text-sm text-zinc-400">Total Assets</p>
-        <p class="mt-1 text-3xl font-bold text-white">{assetCount}</p>
-        <a href="/library" class="mt-2 inline-block text-sm text-indigo-400 hover:text-indigo-300">View Library &rarr;</a>
+      <div class="app-stat p-6">
+        <p class="font-mono text-[0.68rem] uppercase tracking-[0.16em] text-zinc-500">Total assets</p>
+        <p class="mt-2 font-display text-3xl font-bold text-white">{assetCount}</p>
+        <a href="/library" class="mt-2 inline-block text-sm text-indigo-400 hover:text-indigo-300">View library &rarr;</a>
       </div>
 
-      <div class="rounded-xl border border-white/10 bg-white/5 p-6">
-        <p class="text-sm text-zinc-400">Storage Used</p>
-        <p class="mt-1 text-3xl font-bold text-white">{storageUsed}</p>
+      <div class="app-stat p-6">
+        <p class="font-mono text-[0.68rem] uppercase tracking-[0.16em] text-zinc-500">Storage used</p>
+        <p class="mt-2 font-display text-3xl font-bold text-white">{storageUsed}</p>
+        <p class="mt-2 text-xs text-zinc-500">Logical size across your library</p>
       </div>
     </div>
 
@@ -135,19 +137,19 @@ const fallbackAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent
       </div>
     </div>
 
-    <div class="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">
+    <div class="app-panel mt-6 p-6">
       <PasskeyManager client:visible />
     </div>
 
-    <div class="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">
+    <div class="app-panel mt-6 p-6">
       <InviteReferrals client:visible />
     </div>
 
-    <div class="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">
+    <div class="app-panel mt-6 p-6">
       <GoogleAccountManager client:visible />
     </div>
 
-    <div class="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">
+    <div class="app-panel mt-6 p-6">
       <ApiKeyManager client:visible />
     </div>
 

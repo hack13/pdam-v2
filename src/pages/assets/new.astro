@@ -11,21 +11,22 @@ if (!session?.user) {
 ---
 
 <BaseLayout title="Create Asset - PDAM" isAuthenticated={true}>
-  <div class="mx-auto max-w-3xl px-6 py-12">
-    <div class="mb-8">
+  <div class="app-page-narrow">
+    <div class="app-header !block">
       <a href="/library" class="mb-4 inline-flex items-center gap-1.5 text-sm text-zinc-400 transition-colors hover:text-white">
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>
         Back to library
       </a>
-      <h1 class="text-3xl font-bold text-white">Create Asset</h1>
-      <p class="mt-2 text-sm text-zinc-400">
+      <p class="app-kicker">New library record</p>
+      <h1 class="app-title">Create asset</h1>
+      <p class="app-description">
         Add a new digital asset to your vault. You'll be able to upload versioned files after creating it.
       </p>
     </div>
 
-    <div class="rounded-xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm">
+    <div class="app-panel-raised p-5 sm:p-8">
       <AssetCreateForm client:load />
     </div>
   </div>

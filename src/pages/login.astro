@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import BrandMark from '../components/BrandMark.astro';
 import { SignInForm } from '../components/SignInForm';
 import { getSessionFromContext } from '../lib/session';
 
@@ -12,21 +13,16 @@ if (isAuthenticated) {
 ---
 
 <BaseLayout title="Sign In - PDAM" isAuthenticated={isAuthenticated}>
-  <div class="flex min-h-[calc(100vh-4rem)] items-center justify-center px-6 py-16">
+  <div class="relative flex min-h-[calc(100vh-72px)] items-center justify-center overflow-hidden px-6 py-16">
+    <div class="pointer-events-none absolute left-1/2 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-indigo-500/10 blur-3xl" aria-hidden="true"></div>
     <div class="w-full max-w-md">
       <div class="mb-8 text-center">
-        <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
-          <svg class="h-7 w-7 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-            <line x1="12" y1="22.08" x2="12" y2="12"/>
-          </svg>
-        </div>
-        <h1 class="text-3xl font-bold text-white">Welcome back</h1>
-        <p class="mt-2 text-sm text-zinc-400">Sign in to your PDAM account</p>
+        <BrandMark class="mx-auto mb-5 h-16 w-14 object-contain" />
+        <h1 class="text-3xl font-semibold text-white">Welcome back</h1>
+        <p class="mt-2 text-sm text-zinc-400">Sign in to open your asset library.</p>
       </div>
 
-      <div class="rounded-xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm">
+      <div class="brand-panel rounded-[22px] p-8">
         <SignInForm client:load />
       </div>
     </div>

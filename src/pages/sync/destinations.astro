@@ -8,9 +8,9 @@ if (!session?.user) return Astro.redirect('/login');
 ---
 
 <BaseLayout title="Sync Destinations - PDAM" isAuthenticated={true}>
-  <div class="mx-auto max-w-7xl px-6 py-10">
-    <div class="mb-8"><p class="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-300">Sync</p><h1 class="mt-2 text-3xl font-bold text-white">Destinations</h1><p class="mt-2 max-w-2xl text-sm text-zinc-400">Connect storage you control and create narrowly scoped tokens for your own machines.</p></div>
+  <div class="app-page">
+    <div class="app-header"><div><p class="app-kicker">Sync infrastructure</p><h1 class="app-title">Destinations</h1><p class="app-description">Connect storage you control and create narrowly scoped tokens for your own machines.</p></div></div>
     <SyncNav current="destinations" />
-    <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-6"><BackupSyncManager client:load /></div>
+    <div class="app-panel-raised p-5 sm:p-6"><BackupSyncManager client:load /></div>
   </div>
 </BaseLayout>

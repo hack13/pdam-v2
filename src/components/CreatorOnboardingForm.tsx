@@ -235,7 +235,7 @@ export function CreatorOnboardingForm({
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+    <div className="app-panel-raised p-5 sm:p-6">
       <h2 className="text-lg font-semibold text-white">Apply for creator access</h2>
       <p className="mt-1 text-sm text-zinc-400">
         Claim a creator catalog profile and provide proof (Gumroad, Jinxxy, storefront, etc.). An

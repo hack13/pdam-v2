@@ -6,31 +6,11 @@ interface Props {
 const { current } = Astro.props;
 ---
 
-<nav aria-label="Library sections" class="mb-8 border-b border-white/10">
-  <div class="flex gap-6">
-    <a
-      href="/library"
-      class:list={[
-        'border-b-2 px-1 pb-3 text-sm font-medium transition-colors',
-        current === 'assets'
-          ? 'border-indigo-400 text-white'
-          : 'border-transparent text-zinc-500 hover:border-white/20 hover:text-zinc-200',
-      ]}
-      aria-current={current === 'assets' ? 'page' : undefined}
-    >
-      Assets
-    </a>
-    <a
-      href="/library/marketplaces"
-      class:list={[
-        'border-b-2 px-1 pb-3 text-sm font-medium transition-colors',
-        current === 'marketplaces'
-          ? 'border-indigo-400 text-white'
-          : 'border-transparent text-zinc-500 hover:border-white/20 hover:text-zinc-200',
-      ]}
-      aria-current={current === 'marketplaces' ? 'page' : undefined}
-    >
-      Marketplaces
-    </a>
-  </div>
+<nav aria-label="Library sections" class="app-nav">
+  <a href="/library" class="app-nav-link" aria-current={current === 'assets' ? 'page' : undefined}>
+    Assets
+  </a>
+  <a href="/library/marketplaces" class="app-nav-link" aria-current={current === 'marketplaces' ? 'page' : undefined}>
+    Marketplaces
+  </a>
 </nav>

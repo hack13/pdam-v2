@@ -137,7 +137,7 @@ export function SignUpForm({ initialInviteCode = '' }: { initialInviteCode?: str
         disabled={loading}
         className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {loading ? 'Creating account...' : 'Create Account'}
+        {loading ? 'Creating account...' : 'Create account'}
       </button>
 
       <p className="text-center text-sm text-zinc-400">

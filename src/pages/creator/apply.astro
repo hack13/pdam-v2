@@ -48,13 +48,14 @@ function serializeApp(row: NonNullable<typeof pending>) {
 ---
 
 <BaseLayout title="Become a Creator - PDAM" isAuthenticated={true}>
-  <div class="mx-auto max-w-3xl px-6 py-12">
-    <div class="mb-8">
+  <div class="app-page-narrow">
+    <div class="app-header !block">
       <a href="/dashboard" class="mb-4 inline-flex text-sm text-zinc-400 hover:text-white">
         &larr; Back to account
       </a>
-      <h1 class="text-3xl font-bold text-white">Creator onboarding</h1>
-      <p class="mt-1 text-sm text-zinc-400">
+      <p class="app-kicker">Identity verification</p>
+      <h1 class="app-title">Creator onboarding</h1>
+      <p class="app-description">
         Apply to represent a creator identity. Admins verify proof before granting access — this
         helps stop impersonation.
       </p>

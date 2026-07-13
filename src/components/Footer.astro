@@ -1,57 +1,50 @@
 ---
+import BrandMark from './BrandMark.astro';
+
+interface Props {
+  isAuthenticated?: boolean;
+}
+
+const { isAuthenticated = false } = Astro.props;
 ---
 
-<footer class="border-t border-white/10 bg-zinc-950">
-  <div class="mx-auto max-w-7xl px-6 py-12">
-    <div class="grid gap-8 md:grid-cols-4">
-      <div>
+<footer class="border-t border-white/10 bg-[#090d14]">
+  <div class="mx-auto max-w-7xl px-6 py-14">
+    <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr]">
+      <div class="max-w-sm">
         <div class="flex items-center gap-2">
-          <div class="flex h-8 w-8 items-center justify-center rounded-lg" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
-            <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-              <line x1="12" y1="22.08" x2="12" y2="12"/>
-            </svg>
-          </div>
-          <span class="text-lg font-bold text-white">PDAM</span>
+          <BrandMark class="h-10 w-9 object-contain" alt="" />
+          <span class="font-display text-base font-bold tracking-[0.12em] text-white">PDAM</span>
         </div>
         <p class="mt-4 text-sm text-zinc-400">
-          Your personal digital asset manager. Store, backup, and organize your VR assets all in one place.
+          One organized record for every asset, version, creator, license, and backup.
         </p>
       </div>
 
       <div>
-        <h3 class="text-sm font-semibold text-white">Product</h3>
-        <ul class="mt-4 space-y-2">
-          <li><a href="#features" class="text-sm text-zinc-400 hover:text-white">Features</a></li>
-          <li><a href="#pricing" class="text-sm text-zinc-400 hover:text-white">Pricing</a></li>
-          <li><a href="#" class="text-sm text-zinc-400 hover:text-white">Changelog</a></li>
+        <h3 class="text-sm font-semibold tracking-normal text-white">{isAuthenticated ? 'Workspace' : 'Product'}</h3>
+        <ul class="mt-4 space-y-3">
+          <li><a href={isAuthenticated ? '/library' : '/#features'} class="text-sm text-zinc-400 hover:text-white">{isAuthenticated ? 'Library' : 'Features'}</a></li>
+          <li><a href={isAuthenticated ? '/sync' : '/#workflow'} class="text-sm text-zinc-400 hover:text-white">{isAuthenticated ? 'Sync & backups' : 'Workflow'}</a></li>
+          <li><a href="/gallery" class="text-sm text-zinc-400 hover:text-white">Gallery</a></li>
         </ul>
       </div>
 
       <div>
-        <h3 class="text-sm font-semibold text-white">Resources</h3>
-        <ul class="mt-4 space-y-2">
-          <li><a href="#" class="text-sm text-zinc-400 hover:text-white">Documentation</a></li>
+        <h3 class="text-sm font-semibold tracking-normal text-white">Resources</h3>
+        <ul class="mt-4 space-y-3">
           <li><a href="/api-docs" class="text-sm text-zinc-400 hover:text-white">API Reference</a></li>
-          <li><a href="#" class="text-sm text-zinc-400 hover:text-white">Support</a></li>
-        </ul>
-      </div>
-
-      <div>
-        <h3 class="text-sm font-semibold text-white">Company</h3>
-        <ul class="mt-4 space-y-2">
-          <li><a href="#" class="text-sm text-zinc-400 hover:text-white">About</a></li>
-          <li><a href="#" class="text-sm text-zinc-400 hover:text-white">Blog</a></li>
-          <li><a href="#" class="text-sm text-zinc-400 hover:text-white">Contact</a></li>
+          <li><a href={isAuthenticated ? '/dashboard' : '/login'} class="text-sm text-zinc-400 hover:text-white">{isAuthenticated ? 'Account' : 'Sign in'}</a></li>
+          <li><a href={isAuthenticated ? '/assets/new' : '/signup'} class="text-sm text-zinc-400 hover:text-white">{isAuthenticated ? 'Add an asset' : 'Create account'}</a></li>
         </ul>
       </div>
     </div>
 
-    <div class="mt-12 border-t border-white/10 pt-8">
-      <p class="text-center text-sm text-zinc-500">
-        &copy; {new Date().getFullYear()} PDAM. All rights reserved.
+    <div class="mt-12 flex flex-col gap-2 border-t border-white/10 pt-7 sm:flex-row sm:items-center sm:justify-between">
+      <p class="text-sm text-zinc-500">
+        &copy; {new Date().getFullYear()} PDAM
       </p>
+      <p class="font-mono text-xs text-zinc-600">Organized · owned · in sync</p>
     </div>
   </div>
 </footer>
