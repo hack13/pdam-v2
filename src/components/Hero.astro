@@ -27,7 +27,7 @@ const { isAuthenticated } = Astro.props;
       </h1>
 
       <p class="mt-7 max-w-2xl text-lg leading-8 text-zinc-400 md:text-xl">
-        Bring scattered purchases, project files, versions, and licenses into one organized library—then keep every copy secure and in sync.
+        Bring scattered purchases, project files, versions, and licenses into one organized library, then keep every copy secure and in sync.
       </p>
 
       <div class="mt-9 flex flex-col gap-3 sm:flex-row">
@@ -62,8 +62,8 @@ const { isAuthenticated } = Astro.props;
       <BrandMark class="relative z-10 h-auto w-[78%] max-w-[440px] object-contain drop-shadow-[0_28px_46px_rgba(95,56,238,0.28)]" alt="TailCache curled crystal-tail mark" />
 
       <div class="absolute left-0 top-[22%] z-20 rounded-xl border border-white/10 bg-[#121722]/90 px-3 py-2 shadow-xl backdrop-blur-md sm:left-4">
-        <p class="font-mono text-[0.58rem] uppercase tracking-[0.12em] text-zinc-500">Version</p>
-        <p class="mt-0.5 text-xs font-medium text-zinc-200">v2.4.1 · current</p>
+        <p class="font-mono text-[0.58rem] uppercase tracking-[0.12em] text-zinc-500">Creator</p>
+        <p class="mt-0.5 text-xs font-medium text-zinc-200">5 linked purchases</p>
       </div>
       <div class="absolute bottom-[16%] right-0 z-20 rounded-xl border border-blue-500/20 bg-[#121722]/90 px-3 py-2 shadow-xl backdrop-blur-md sm:right-3">
         <p class="font-mono text-[0.58rem] uppercase tracking-[0.12em] text-blue-400">Sync</p>
@@ -81,7 +81,7 @@ const { isAuthenticated } = Astro.props;
     <div class="max-w-3xl">
       <p class="text-xs font-bold uppercase tracking-[0.16em] text-indigo-300">Built around the asset</p>
       <h2 class="mt-4 text-4xl font-semibold leading-tight text-white sm:text-5xl">Your library, treated like a system.</h2>
-      <p class="mt-5 max-w-2xl text-lg leading-8 text-zinc-400">TailCache connects the file, its source, its history, and every safe copy—without letting the interface get in the way.</p>
+      <p class="mt-5 max-w-2xl text-lg leading-8 text-zinc-400">Collect purchases from the stores you already use, link them to gallery listings, and back everything up to storage you control.</p>
     </div>
 
     <div class="mt-12 grid gap-5 lg:grid-cols-3">
@@ -92,19 +92,8 @@ const { isAuthenticated } = Astro.props;
             <path stroke-linecap="round" stroke-linejoin="round" d="m4.4 7.7 7.6 4.4 7.6-4.4M12 12.1V21" />
           </svg>
         </div>
-        <h3 class="mt-6 text-xl font-semibold text-white">Organize the whole record</h3>
-        <p class="mt-3 text-sm leading-6 text-zinc-400">Keep files, creators, marketplaces, tags, and licenses attached to one durable asset record.</p>
-      </article>
-
-      <article class="brand-panel rounded-[22px] p-7">
-        <div class="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-zinc-200">
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M7 12.5 10.2 16 17 8.5" />
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3.5 20 7v5c0 4.4-3.1 7.4-8 8.5C7.1 19.4 4 16.4 4 12V7l8-3.5Z" />
-          </svg>
-        </div>
-        <h3 class="mt-6 text-xl font-semibold text-white">Keep ownership traceable</h3>
-        <p class="mt-3 text-sm leading-6 text-zinc-400">Preserve where an asset came from and verify eligible creator listings before adding them to your library.</p>
+        <h3 class="mt-6 text-xl font-semibold text-white">All your marketplace assets</h3>
+        <p class="mt-3 text-sm leading-6 text-zinc-400">Bring purchases from sites like Jinxxy, Gumroad, and more into one library, and link them to matching creations in the gallery.</p>
       </article>
 
       <article class="brand-panel rounded-[22px] p-7">
@@ -114,8 +103,19 @@ const { isAuthenticated } = Astro.props;
             <path stroke-linecap="round" stroke-linejoin="round" d="m17 4 3 3-3 3M7 20l-3-3 3-3" />
           </svg>
         </div>
-        <h3 class="mt-6 text-xl font-semibold text-white">Move copies with confidence</h3>
-        <p class="mt-3 text-sm leading-6 text-zinc-400">Track versions and sync destinations while global deduplication keeps repeated files from wasting space.</p>
+        <h3 class="mt-6 text-xl font-semibold text-white">Backup to your own storage</h3>
+        <p class="mt-3 text-sm leading-6 text-zinc-400">Keep a backup of your library on storage options you control, like S3, WebDAV, Google Drive, and more.</p>
+      </article>
+
+      <article class="brand-panel rounded-[22px] p-7">
+        <div class="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-zinc-200">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 12.5 10.2 16 17 8.5" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3.5 20 7v5c0 4.4-3.1 7.4-8 8.5C7.1 19.4 4 16.4 4 12V7l8-3.5Z" />
+          </svg>
+        </div>
+        <h3 class="mt-6 text-xl font-semibold text-white">Creator gallery</h3>
+        <p class="mt-3 text-sm leading-6 text-zinc-400">Creators list their creations in the gallery, with clear links to where buyers can purchase each one.</p>
       </article>
     </div>
   </div>
@@ -125,21 +125,21 @@ const { isAuthenticated } = Astro.props;
   <div class="mx-auto grid max-w-7xl items-center gap-14 px-6 lg:grid-cols-[0.82fr_1.18fr] lg:gap-20">
     <div>
       <p class="text-xs font-bold uppercase tracking-[0.16em] text-indigo-300">A clear workflow</p>
-      <h2 class="mt-4 text-4xl font-semibold leading-tight text-white sm:text-5xl">From scattered files to a clean record.</h2>
-      <p class="mt-5 text-lg leading-8 text-zinc-400">Each step adds useful context. Nothing is hidden behind a generic “vault” metaphor.</p>
+      <h2 class="mt-4 text-4xl font-semibold leading-tight text-white sm:text-5xl">From library to your own storage.</h2>
+      <p class="mt-5 text-lg leading-8 text-zinc-400">Connect a storage solution you control, then keep healthy backups flowing on your schedule.</p>
 
       <ol class="mt-9 space-y-7">
         <li class="grid grid-cols-[42px_1fr] gap-4">
           <span class="flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-purple-500/25 bg-indigo-500/15 font-mono text-sm font-semibold text-indigo-300">1</span>
-          <div><h3 class="text-base font-semibold tracking-normal text-white">Capture</h3><p class="mt-1 text-sm leading-6 text-zinc-400">Add the asset, its source, creator, and the files you actually use.</p></div>
+          <div><h3 class="text-base font-semibold tracking-normal text-white">Capture</h3><p class="mt-1 text-sm leading-6 text-zinc-400">Add assets from marketplaces like Jinxxy and Gumroad, including licenses and files you rely on.</p></div>
         </li>
         <li class="grid grid-cols-[42px_1fr] gap-4">
-          <span class="flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-purple-500/25 bg-indigo-500/15 font-mono text-sm font-semibold text-indigo-300">2</span>
-          <div><h3 class="text-base font-semibold tracking-normal text-white">Maintain</h3><p class="mt-1 text-sm leading-6 text-zinc-400">Promote new versions without losing the history behind the current one.</p></div>
+          <span class="flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-blue-500/25 bg-blue-500/10 font-mono text-sm font-semibold text-blue-400">2</span>
+          <div><h3 class="text-base font-semibold tracking-normal text-white">Storage solution</h3><p class="mt-1 text-sm leading-6 text-zinc-400">Connect S3-compatible storage, WebDAV, Google Drive, or another destination you own.</p></div>
         </li>
         <li class="grid grid-cols-[42px_1fr] gap-4">
-          <span class="flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-blue-500/25 bg-blue-500/10 font-mono text-sm font-semibold text-blue-400">3</span>
-          <div><h3 class="text-base font-semibold tracking-normal text-white">Sync</h3><p class="mt-1 text-sm leading-6 text-zinc-400">Send healthy copies to the destinations you control and review every run.</p></div>
+          <span class="flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-purple-500/25 bg-indigo-500/15 font-mono text-sm font-semibold text-indigo-300">3</span>
+          <div><h3 class="text-base font-semibold tracking-normal text-white">Sync</h3><p class="mt-1 text-sm leading-6 text-zinc-400">Run an immediate backup or schedule recurring copies, then review every sync.</p></div>
         </li>
       </ol>
     </div>

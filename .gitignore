@@ -24,9 +24,6 @@ Thumbs.db
 *.log
 logs
 
-# Drizzle
-drizzle/
-
 # Local file storage (root uploads directory only)
 /uploads/
 
