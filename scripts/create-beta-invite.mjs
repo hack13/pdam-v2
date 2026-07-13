@@ -1,19 +1,22 @@
 #!/usr/bin/env node
 
 import { randomBytes, randomUUID } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const envContent = readFileSync(join(__dirname, '..', '.env'), 'utf-8');
+const envPath = join(__dirname, '..', '.env');
+// Docker supplies configuration through environment variables and deliberately
+// does not copy the local development .env file into the image.
+const envContent = existsSync(envPath) ? readFileSync(envPath, 'utf-8') : '';
 const env = Object.fromEntries(envContent.split('\n').map((line) => {
   const [key, ...value] = line.trim().split('=');
   return [key, value.join('=')];
 }).filter(([key, value]) => key && value && !key.startsWith('#')));
 const databaseUrl = process.env.DATABASE_URL ?? env.DATABASE_URL;
-if (!databaseUrl) throw new Error('DATABASE_URL not found in .env');
+if (!databaseUrl) throw new Error('DATABASE_URL is not set');
 
 const code = randomBytes(24).toString('base64url');
 const sql = postgres(databaseUrl);
