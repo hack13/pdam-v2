@@ -22,13 +22,15 @@ FROM base AS runner
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=4321 \
-    UPLOADS_DIR=/app/uploads
+    UPLOADS_DIR=/app/uploads \
+    COREPACK_HOME=/app/.cache/node/corepack
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates \
   && rm -rf /var/lib/apt/lists/* \
   && groupadd --system --gid 1001 nodejs \
-  && useradd --system --uid 1001 --gid nodejs astro \
+  && useradd --system --create-home --home-dir /home/astro --uid 1001 --gid nodejs astro \
+  && mkdir -p "$COREPACK_HOME" \
   && mkdir -p /app/uploads \
   && chown -R astro:nodejs /app
 
