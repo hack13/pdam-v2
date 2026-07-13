@@ -1,6 +1,6 @@
 ---
 interface Props {
-  current: 'assets' | 'marketplaces';
+  current: 'assets' | 'marketplaces' | 'creators';
 }
 
 const { current } = Astro.props;
@@ -12,5 +12,8 @@ const { current } = Astro.props;
   </a>
   <a href="/library/marketplaces" class="app-nav-link" aria-current={current === 'marketplaces' ? 'page' : undefined}>
     Marketplaces
+  </a>
+  <a href="/library/creators" class="app-nav-link" aria-current={current === 'creators' ? 'page' : undefined}>
+    Creators
   </a>
 </nav>

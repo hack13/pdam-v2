@@ -51,7 +51,6 @@ const isActive = (href: string) => href === '/gallery'
         <a href="/library" aria-current={isActive('/library') ? 'page' : undefined} class:list={["relative text-sm font-medium transition-colors hover:text-white after:absolute after:-bottom-[27px] after:left-0 after:right-0 after:h-px after:bg-indigo-400", isActive('/library') ? 'text-white after:opacity-100' : 'text-zinc-400 after:opacity-0']}>Library</a>
         <a href="/gallery" aria-current={isActive('/gallery') ? 'page' : undefined} class:list={["relative text-sm font-medium transition-colors hover:text-white after:absolute after:-bottom-[27px] after:left-0 after:right-0 after:h-px after:bg-indigo-400", isActive('/gallery') ? 'text-white after:opacity-100' : 'text-zinc-400 after:opacity-0']}>Gallery</a>
         <a href="/sync" aria-current={isActive('/sync') ? 'page' : undefined} class:list={["relative text-sm font-medium transition-colors hover:text-white after:absolute after:-bottom-[27px] after:left-0 after:right-0 after:h-px after:bg-indigo-400", isActive('/sync') ? 'text-white after:opacity-100' : 'text-zinc-400 after:opacity-0']}>Sync</a>
-        {isCreator && <a href="/creator" aria-current={isActive('/creator') ? 'page' : undefined} class:list={["relative text-sm font-medium transition-colors hover:text-white after:absolute after:-bottom-[27px] after:left-0 after:right-0 after:h-px after:bg-indigo-400", isActive('/creator') ? 'text-white after:opacity-100' : 'text-zinc-400 after:opacity-0']}>Studio</a>}
         <UserMenu
           client:load
           userName={userName}
@@ -86,7 +85,6 @@ const isActive = (href: string) => href === '/gallery'
             <a href="/library" class="block rounded-xl px-4 py-3 text-sm text-zinc-300 hover:bg-white/5 hover:text-white">Library</a>
             <a href="/gallery" class="block rounded-xl px-4 py-3 text-sm text-zinc-300 hover:bg-white/5 hover:text-white">Gallery</a>
             <a href="/sync" class="block rounded-xl px-4 py-3 text-sm text-zinc-300 hover:bg-white/5 hover:text-white">Sync</a>
-            {isCreator && <a href="/creator" class="block rounded-xl px-4 py-3 text-sm text-zinc-300 hover:bg-white/5 hover:text-white">Creator studio</a>}
             <a href="/dashboard" class="block rounded-xl px-4 py-3 text-sm text-zinc-300 hover:bg-white/5 hover:text-white">Account</a>
           </>
         ) : (

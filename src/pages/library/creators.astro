@@ -1,0 +1,30 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import LibraryNav from '../../components/LibraryNav.astro';
+import { CreatorsManager } from '../../components/CreatorsManager';
+import { getSessionFromContext } from '../../lib/session';
+
+const session = await getSessionFromContext(Astro);
+
+if (!session?.user) {
+  return Astro.redirect('/login');
+}
+---
+
+<BaseLayout title="Creators - Library - TailCache" isAuthenticated={true}>
+  <div class="app-page">
+    <div class="app-header">
+      <div>
+        <p class="app-kicker">Catalog identities</p>
+        <h1 class="app-title">Creators</h1>
+        <p class="app-description">Browse verified and catalog creators so asset attribution stays consistent.</p>
+      </div>
+    </div>
+
+    <LibraryNav current="creators" />
+
+    <div class="app-panel-raised p-5 sm:p-6">
+      <CreatorsManager client:visible />
+    </div>
+  </div>
+</BaseLayout>
