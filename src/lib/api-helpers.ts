@@ -13,6 +13,7 @@ export interface AuthedUser {
   emailVerified: boolean;
   image: string | null;
   role?: string;
+  canGenerateInvites?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

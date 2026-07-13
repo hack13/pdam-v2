@@ -7,6 +7,8 @@ interface AdminUser {
   name: string;
   email: string;
   role: string;
+  canGenerateInvites: boolean;
+  inviteGenerationLimit: number;
   emailVerified: boolean;
   createdAt: string;
   assetCount: number;
@@ -28,6 +30,8 @@ export function UserManagement({ currentUserId, initialUsers = [] }: UserManagem
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editRole, setEditRole] = useState('user');
+  const [editCanGenerateInvites, setEditCanGenerateInvites] = useState(false);
+  const [editInviteGenerationLimit, setEditInviteGenerationLimit] = useState(0);
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
 
@@ -60,6 +64,8 @@ export function UserManagement({ currentUserId, initialUsers = [] }: UserManagem
     setEditName(user.name);
     setEditEmail(user.email);
     setEditRole(user.role);
+    setEditCanGenerateInvites(user.canGenerateInvites);
+    setEditInviteGenerationLimit(user.inviteGenerationLimit);
     setEditError('');
   }
 
@@ -78,6 +84,8 @@ export function UserManagement({ currentUserId, initialUsers = [] }: UserManagem
           name: editName.trim(),
           email: editEmail.trim(),
           role: editRole,
+          canGenerateInvites: editCanGenerateInvites,
+          inviteGenerationLimit: editCanGenerateInvites ? editInviteGenerationLimit : 0,
         }),
       });
 
@@ -141,6 +149,7 @@ export function UserManagement({ currentUserId, initialUsers = [] }: UserManagem
             <tr className="border-b border-white/10 bg-white/5">
               <th className="px-4 py-3 font-medium text-zinc-300">User</th>
               <th className="hidden px-4 py-3 font-medium text-zinc-300 md:table-cell">Role</th>
+              <th className="hidden px-4 py-3 font-medium text-zinc-300 lg:table-cell">Invites</th>
               <th className="px-4 py-3 font-medium text-zinc-300">Assets</th>
               <th className="hidden px-4 py-3 font-medium text-zinc-300 sm:table-cell">Storage</th>
               <th className="hidden px-4 py-3 font-medium text-zinc-300 lg:table-cell">Joined</th>
@@ -168,6 +177,13 @@ export function UserManagement({ currentUserId, initialUsers = [] }: UserManagem
                   >
                     {user.role}
                   </span>
+                </td>
+                <td className="hidden px-4 py-3 text-zinc-400 lg:table-cell">
+                  {user.role === 'admin'
+                    ? 'Unlimited'
+                    : user.canGenerateInvites
+                      ? `Up to ${user.inviteGenerationLimit}`
+                      : '—'}
                 </td>
                 <td className="px-4 py-3 text-zinc-300">{user.assetCount}</td>
                 <td className="hidden px-4 py-3 text-zinc-300 sm:table-cell">
@@ -257,6 +273,48 @@ export function UserManagement({ currentUserId, initialUsers = [] }: UserManagem
                   <option value="admin">Admin</option>
                 </select>
               </div>
+
+              <label className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-3">
+                <input
+                  type="checkbox"
+                  checked={editCanGenerateInvites}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    setEditCanGenerateInvites(enabled);
+                    if (enabled && editInviteGenerationLimit < 1) {
+                      setEditInviteGenerationLimit(3);
+                    }
+                  }}
+                  className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black/20 text-indigo-500 focus:ring-indigo-500/40"
+                />
+                <span>
+                  <span className="block text-sm text-white">Can generate invite codes</span>
+                  <span className="mt-0.5 block text-xs text-zinc-500">
+                    Lets this user mint single-use beta invites from their account dashboard. Admins always can.
+                  </span>
+                </span>
+              </label>
+
+              {editCanGenerateInvites && (
+                <div>
+                  <label htmlFor="edit-invite-limit" className="mb-1 block text-sm text-zinc-400">
+                    Total invites allowed
+                  </label>
+                  <input
+                    id="edit-invite-limit"
+                    type="number"
+                    min={1}
+                    max={1000}
+                    value={editInviteGenerationLimit}
+                    onChange={(e) => setEditInviteGenerationLimit(Number(e.target.value) || 0)}
+                    required
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50"
+                  />
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Lifetime max this user can create. Raising the number allows more after they hit the previous limit.
+                  </p>
+                </div>
+              )}
 
               {editError && <p className="text-sm text-red-400">{editError}</p>}
 

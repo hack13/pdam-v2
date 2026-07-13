@@ -59,6 +59,16 @@ export const auth = betterAuth({
         defaultValue: 'user',
         input: false,
       },
+      canGenerateInvites: {
+        type: 'boolean',
+        defaultValue: false,
+        input: false,
+      },
+      inviteGenerationLimit: {
+        type: 'number',
+        defaultValue: 0,
+        input: false,
+      },
     },
   },
   emailAndPassword: {
@@ -104,7 +114,7 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
-          await attachAcceptedInviteToUser(user.id, user.email, user.createdAt);
+          await attachAcceptedInviteToUser(user.id, user.email);
         },
       },
     },

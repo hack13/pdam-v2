@@ -12,6 +12,8 @@ function serializeUser(user: {
   name: string;
   email: string;
   role: string;
+  canGenerateInvites: boolean;
+  inviteGenerationLimit: number;
   emailVerified: boolean;
   createdAt: Date;
   assetCount: number;
@@ -22,6 +24,8 @@ function serializeUser(user: {
     name: user.name,
     email: user.email,
     role: user.role,
+    canGenerateInvites: user.canGenerateInvites,
+    inviteGenerationLimit: user.inviteGenerationLimit,
     emailVerified: user.emailVerified,
     createdAt: user.createdAt,
     assetCount: user.assetCount,
@@ -54,7 +58,13 @@ export const PUT: APIRoute = async (context) => {
   });
   if (!existing) return jsonError('User not found', 404);
 
-  let body: { name?: string; email?: string; role?: string };
+  let body: {
+    name?: string;
+    email?: string;
+    role?: string;
+    canGenerateInvites?: boolean;
+    inviteGenerationLimit?: number;
+  };
   try {
     body = await context.request.json();
   } catch {
@@ -65,6 +75,8 @@ export const PUT: APIRoute = async (context) => {
     name?: string;
     email?: string;
     role?: string;
+    canGenerateInvites?: boolean;
+    inviteGenerationLimit?: number;
     updatedAt: Date;
   } = {
     updatedAt: new Date(),
@@ -93,11 +105,36 @@ export const PUT: APIRoute = async (context) => {
     updates.email = email;
   }
 
-    if (body.role !== undefined) {
+  if (body.role !== undefined) {
     if (body.role !== 'user' && body.role !== 'admin' && body.role !== 'creator') {
       return jsonError('Role must be "user", "creator", or "admin"');
     }
     updates.role = body.role;
+  }
+
+  if (body.canGenerateInvites !== undefined) {
+    if (typeof body.canGenerateInvites !== 'boolean') {
+      return jsonError('canGenerateInvites must be a boolean');
+    }
+    updates.canGenerateInvites = body.canGenerateInvites;
+  }
+
+  if (body.inviteGenerationLimit !== undefined) {
+    if (
+      typeof body.inviteGenerationLimit !== 'number'
+      || !Number.isInteger(body.inviteGenerationLimit)
+      || body.inviteGenerationLimit < 0
+      || body.inviteGenerationLimit > 1000
+    ) {
+      return jsonError('inviteGenerationLimit must be an integer between 0 and 1000');
+    }
+    updates.inviteGenerationLimit = body.inviteGenerationLimit;
+  }
+
+  const nextCanGenerate = updates.canGenerateInvites ?? existing.canGenerateInvites;
+  const nextLimit = updates.inviteGenerationLimit ?? existing.inviteGenerationLimit;
+  if (nextCanGenerate && nextLimit < 1) {
+    return jsonError('Set inviteGenerationLimit to at least 1 when enabling invite generation');
   }
 
   await db.update(users).set(updates).where(eq(users.id, userId));

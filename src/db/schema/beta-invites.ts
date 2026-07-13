@@ -2,8 +2,8 @@ import { index, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-cor
 import { users } from './auth';
 
 /**
- * A single-use beta invitation. Referral codes are deliberately issued as
- * separate rows so each one has its own availability time and audit trail.
+ * A single-use beta invitation. Each mint is its own row so acceptance,
+ * revocation, and inviter attribution stay auditable.
  */
 export const betaInvites = pgTable(
   'beta_invite',

@@ -63,6 +63,8 @@ export interface AdminUserSummary {
   name: string;
   email: string;
   role: string;
+  canGenerateInvites: boolean;
+  inviteGenerationLimit: number;
   emailVerified: boolean;
   createdAt: Date;
   assetCount: number;
@@ -100,6 +102,8 @@ export async function getAdminUserSummaries(): Promise<AdminUserSummary[]> {
     name: user.name,
     email: user.email,
     role: user.role,
+    canGenerateInvites: user.canGenerateInvites,
+    inviteGenerationLimit: user.inviteGenerationLimit,
     emailVerified: user.emailVerified,
     createdAt: user.createdAt,
     assetCount: assetCountByUser.get(user.id) ?? 0,
@@ -128,6 +132,8 @@ export async function getAdminUserSummary(userId: string): Promise<AdminUserSumm
     name: user.name,
     email: user.email,
     role: user.role,
+    canGenerateInvites: user.canGenerateInvites,
+    inviteGenerationLimit: user.inviteGenerationLimit,
     emailVerified: user.emailVerified,
     createdAt: user.createdAt,
     assetCount: assetCount?.count ?? 0,

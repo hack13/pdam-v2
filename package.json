@@ -20,6 +20,7 @@
     "db:apply-creator-applications": "node scripts/apply-creator-applications-migration.mjs",
     "db:apply-passkey": "node scripts/apply-passkey-migration.mjs",
     "db:apply-beta-invites": "node scripts/apply-beta-invites-migration.mjs",
+    "db:apply-can-generate-invites": "node scripts/apply-can-generate-invites-migration.mjs",
     "beta-invite:create": "node scripts/create-beta-invite.mjs",
     "db:encrypt-webhook-secrets": "node scripts/encrypt-webhook-secrets.mjs",
     "db:apply-verification-rate-limit": "node scripts/apply-verification-rate-limit-migration.mjs",
