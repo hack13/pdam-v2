@@ -1,0 +1,152 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getSessionFromContext } from '../../lib/session';
+import { db } from '../../db';
+import {
+  creators,
+  products,
+  fileThumbnails,
+  galleryPurchaseLinks,
+  marketplaceSources,
+} from '../../db/schema';
+import { and, desc, eq, inArray } from 'drizzle-orm';
+
+const session = await getSessionFromContext(Astro);
+const isAuthenticated = !!session?.user;
+const slug = Astro.params.slug;
+const creator = slug
+  ? await db.query.creators.findFirst({ where: eq(creators.slug, slug) })
+  : null;
+
+if (!creator?.enrolledByUserId) {
+  return Astro.redirect('/gallery');
+}
+
+const ownedListings = await db.query.products.findMany({
+  where: and(
+    eq(products.ownerUserId, creator.enrolledByUserId),
+    eq(products.isGalleryListed, true),
+  ),
+  orderBy: [desc(products.updatedAt)],
+});
+const listings = ownedListings.filter((listing) => (listing.creatorIds ?? []).includes(creator.id));
+const listingIds = listings.map((listing) => listing.id);
+const thumbnailIds = listings
+  .map((listing) => listing.thumbnailFileThumbnailId)
+  .filter((id): id is string => !!id);
+const thumbnails = thumbnailIds.length
+  ? await db.query.fileThumbnails.findMany({ where: inArray(fileThumbnails.id, thumbnailIds) })
+  : [];
+const thumbnailSet = new Set(thumbnails.map((thumbnail) => thumbnail.id));
+const links = listingIds.length
+  ? await db.query.galleryPurchaseLinks.findMany({ where: inArray(galleryPurchaseLinks.productId, listingIds) })
+  : [];
+const marketplaceIds = [...new Set(links.map((link) => link.marketplaceSourceId))];
+const marketplaces = marketplaceIds.length
+  ? await db.query.marketplaceSources.findMany({ where: inArray(marketplaceSources.id, marketplaceIds) })
+  : [];
+const marketplaceMap = Object.fromEntries(marketplaces.map((marketplace) => [marketplace.id, marketplace]));
+const linksByProduct = new Map<string, typeof links>();
+for (const link of links) {
+  const grouped = linksByProduct.get(link.productId) ?? [];
+  grouped.push(link);
+  linksByProduct.set(link.productId, grouped);
+}
+
+const profileImageUrl = creator.profileImageUrl ?? creator.avatarUrl;
+const version = creator.updatedAt.getTime();
+const withVersion = (url: string | null) => url?.startsWith('/api/') ? `${url}?v=${version}` : url;
+---
+
+<BaseLayout title={`${creator.name} - Creator - PDAM`} isAuthenticated={isAuthenticated}>
+  <div class="mx-auto max-w-7xl px-5 py-8 sm:px-6 sm:py-12">
+    <section class="overflow-hidden rounded-[1.4rem] border border-white/10 bg-[#121722] shadow-[0_30px_90px_rgba(0,0,0,0.28)]">
+      <div class="relative h-48 overflow-hidden border-b border-white/10 bg-[#0d121c] sm:h-72 lg:h-80">
+        {creator.headerImageUrl ? (
+          <img src={withVersion(creator.headerImageUrl)} alt={`${creator.name} header`} class="h-full w-full object-cover" />
+        ) : (
+          <div class="absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(126,63,242,0.42),transparent_38%),radial-gradient(circle_at_82%_46%,rgba(14,165,233,0.2),transparent_32%),linear-gradient(145deg,#121722,#090d14)]"></div>
+        )}
+        <div class="absolute inset-0 bg-gradient-to-t from-[#121722]/85 via-transparent to-black/10"></div>
+      </div>
+
+      <div class="relative px-5 pb-7 sm:px-8 sm:pb-9 lg:px-10">
+        <div class="-mt-14 flex flex-col gap-5 sm:-mt-16 sm:flex-row sm:items-end sm:justify-between">
+          <div class="flex min-w-0 items-end gap-5">
+            <div class="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-4 border-[#121722] bg-[#171d2a] shadow-2xl sm:h-32 sm:w-32">
+              {profileImageUrl ? (
+                <img src={withVersion(profileImageUrl)} alt={creator.name} class="h-full w-full object-cover" />
+              ) : (
+                <span class="font-display text-4xl font-bold text-indigo-300">{creator.name.slice(0, 1).toUpperCase()}</span>
+              )}
+            </div>
+            <div class="min-w-0 pb-1">
+              <p class="app-kicker !text-cyan-300">Verified creator</p>
+              <h1 class="mt-1 truncate font-display text-3xl font-bold text-white sm:text-4xl">{creator.name}</h1>
+            </div>
+          </div>
+          {creator.profileUrl && (
+            <a href={creator.profileUrl} target="_blank" rel="noreferrer" class="btn-secondary shrink-0 !px-4 !py-2.5">
+              Creator website <span aria-hidden="true">↗</span>
+            </a>
+          )}
+        </div>
+
+        <div class="mt-7 grid gap-6 border-t border-white/10 pt-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+          <p class="max-w-3xl whitespace-pre-line text-sm leading-7 text-zinc-300 sm:text-base">
+            {creator.bio || `${creator.name} publishes original digital products through PDAM.`}
+          </p>
+          <div class="flex items-center gap-3 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-zinc-500">
+            <span class="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.65)]"></span>
+            {listings.length} {listings.length === 1 ? 'published product' : 'published products'}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mt-12" aria-labelledby="creator-products">
+      <div class="mb-6 flex items-end justify-between gap-5">
+        <div>
+          <p class="app-kicker">Public catalog</p>
+          <h2 id="creator-products" class="mt-2 font-display text-2xl font-semibold text-white sm:text-3xl">Products by {creator.name}</h2>
+        </div>
+      </div>
+
+      {listings.length === 0 ? (
+        <div class="rounded-2xl border border-dashed border-white/10 bg-white/[0.025] p-12 text-center">
+          <p class="text-sm text-zinc-400">No published products yet.</p>
+        </div>
+      ) : (
+        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {listings.map((listing) => {
+            const thumbnailUrl = listing.thumbnailFileThumbnailId && thumbnailSet.has(listing.thumbnailFileThumbnailId)
+              ? `/api/thumbnail/${listing.thumbnailFileThumbnailId}`
+              : null;
+            const listingLinks = linksByProduct.get(listing.id) ?? [];
+            const storeNames = [...new Set(listingLinks.map((link) => marketplaceMap[link.marketplaceSourceId]?.name).filter(Boolean))];
+            return (
+              <a href={`/gallery/${listing.id}`} class="asset-card-brand group">
+                <div class="relative aspect-[4/3] overflow-hidden bg-[#0d121c]">
+                  {thumbnailUrl ? (
+                    <img src={thumbnailUrl} alt={listing.title} loading="lazy" class="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.025]" />
+                  ) : (
+                    <div class="flex h-full items-center justify-center bg-[radial-gradient(circle_at_30%_20%,rgba(126,63,242,0.25),transparent_38%)] text-zinc-700">
+                      <svg class="h-14 w-14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.6-4.6a2 2 0 0 1 2.8 0L16 16m-2-2 1.6-1.6a2 2 0 0 1 2.8 0L20 14M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z" /></svg>
+                    </div>
+                  )}
+                </div>
+                <div class="flex flex-1 flex-col p-5">
+                  <h3 class="font-display text-lg font-semibold text-white transition-colors group-hover:text-indigo-300">{listing.title}</h3>
+                  {listing.descriptionText && <p class="mt-2 line-clamp-2 text-sm leading-6 text-zinc-400">{listing.descriptionText}</p>}
+                  <div class="mt-auto flex flex-wrap gap-1.5 pt-5">
+                    {storeNames.slice(0, 4).map((name) => <span class="tag-chip">{name}</span>)}
+                  </div>
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  </div>
+</BaseLayout>

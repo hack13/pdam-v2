@@ -25,6 +25,13 @@ const initialListings = listings.map((l) => ({
     marketplaceProductId: p.marketplaceProductId,
     label: p.label,
   })),
+  galleryMedia: l.galleryMedia.map((item) => ({
+    id: item.id,
+    mediaType: item.mediaType as 'image' | 'video',
+    url: item.url,
+    altText: item.altText,
+    caption: item.caption,
+  })),
 }));
 
 const initialLinkedCreator = linked

@@ -12,6 +12,9 @@ function serializeCreator(creator: typeof creators.$inferSelect) {
     slug: creator.slug,
     profileUrl: creator.profileUrl,
     avatarUrl: creator.avatarUrl,
+    bio: creator.bio,
+    profileImageUrl: creator.profileImageUrl,
+    headerImageUrl: creator.headerImageUrl,
     marketplaceSourceId: creator.marketplaceSourceId,
     externalId: creator.externalId,
   };
@@ -23,6 +26,36 @@ export const GET: APIRoute = async (context) => {
 
   const linked = await getLinkedCreator(auth.user.id);
   return json({ linkedCreator: linked ? serializeCreator(linked) : null });
+};
+
+export const PUT: APIRoute = async (context) => {
+  const auth = await requireCreator(context);
+  if (auth instanceof Response) return auth;
+
+  const linked = await getLinkedCreator(auth.user.id);
+  if (!linked) return jsonError('Link a creator profile before editing it', 404);
+
+  let body: { bio?: unknown };
+  try {
+    body = await context.request.json();
+  } catch {
+    return jsonError('Invalid JSON body');
+  }
+
+  if (body.bio !== undefined && typeof body.bio !== 'string') {
+    return jsonError('Bio must be text');
+  }
+
+  const bio = typeof body.bio === 'string' ? body.bio.trim() : linked.bio;
+  if (bio && bio.length > 1000) return jsonError('Bio must be 1,000 characters or fewer');
+
+  const [updated] = await db
+    .update(creators)
+    .set({ bio: bio || null, updatedAt: new Date() })
+    .where(and(eq(creators.id, linked.id), eq(creators.enrolledByUserId, auth.user.id)))
+    .returning();
+
+  return json({ linkedCreator: serializeCreator(updated) });
 };
 
 /**

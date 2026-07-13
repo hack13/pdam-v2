@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '../../../db';
 import { fileThumbnails, products } from '../../../db/schema';
 import { getSessionFromContext } from '../../../lib/session';
@@ -19,19 +19,29 @@ export const GET: APIRoute = async (context) => {
     return new Response('Not found', { status: 404 });
   }
 
-  const product = await db.query.products.findFirst({
-    where: eq(products.thumbnailFileThumbnailId, thumbnailId),
+  const publicProduct = await db.query.products.findFirst({
+    where: and(
+      eq(products.thumbnailFileThumbnailId, thumbnailId),
+      eq(products.isGalleryListed, true),
+    ),
   });
 
-  if (!product) {
-    return new Response('Forbidden', { status: 403 });
-  }
-
-  // Gallery listings are publicly viewable (including thumbnails).
-  const isPublicThumbnail = product.isGalleryListed;
+  // A linked library copy can share a thumbnail with its public source. Check
+  // for any published product before falling back to private ownership.
+  const isPublicThumbnail = !!publicProduct;
   if (!isPublicThumbnail) {
     const session = await getSessionFromContext(context);
-    if (!session?.user || product.ownerUserId !== session.user.id) {
+    if (!session?.user) {
+      return new Response('Forbidden', { status: 403 });
+    }
+    const ownedProduct = await db.query.products.findFirst({
+      where: and(
+        eq(products.thumbnailFileThumbnailId, thumbnailId),
+        eq(products.ownerUserId, session.user.id),
+      ),
+      columns: { id: true },
+    });
+    if (!ownedProduct) {
       return new Response('Forbidden', { status: 403 });
     }
   }

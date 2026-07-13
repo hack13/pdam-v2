@@ -25,6 +25,25 @@ export const galleryPurchaseLinks = pgTable(
   ],
 );
 
+/** Rich media shown only on the public gallery storefront for a product. */
+export const galleryListingMedia = pgTable(
+  'gallery_listing_media',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    mediaType: text('media_type').notNull(),
+    url: text('url').notNull(),
+    storageKey: text('storage_key'),
+    altText: text('alt_text'),
+    caption: text('caption'),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => [index('gallery_listing_media_product_idx').on(table.productId)],
+);
+
 /**
  * Creator-defined webhook endpoints used to verify license keys
  * against their own tooling (per marketplace or as a default).
@@ -103,6 +122,8 @@ export const marketplaceClickEvents = pgTable(
 
 export type GalleryPurchaseLink = typeof galleryPurchaseLinks.$inferSelect;
 export type NewGalleryPurchaseLink = typeof galleryPurchaseLinks.$inferInsert;
+export type GalleryListingMedia = typeof galleryListingMedia.$inferSelect;
+export type NewGalleryListingMedia = typeof galleryListingMedia.$inferInsert;
 export type CreatorVerificationWebhook = typeof creatorVerificationWebhooks.$inferSelect;
 export type NewCreatorVerificationWebhook = typeof creatorVerificationWebhooks.$inferInsert;
 export type OwnershipVerification = typeof ownershipVerifications.$inferSelect;

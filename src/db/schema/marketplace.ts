@@ -20,6 +20,10 @@ export const creators = pgTable('creators', {
   externalId: text('external_id'),
   profileUrl: text('profile_url'),
   avatarUrl: text('avatar_url'),
+  /** Creator-managed presentation fields for the public PDAM profile. */
+  bio: text('bio'),
+  profileImageUrl: text('profile_image_url'),
+  headerImageUrl: text('header_image_url'),
   enrolledByUserId: text('enrolled_by_user_id').references(() => users.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),

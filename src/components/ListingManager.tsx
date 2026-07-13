@@ -26,6 +26,15 @@ interface Listing {
     marketplaceProductId: string | null;
     label: string | null;
   }>;
+  galleryMedia: GalleryMedia[];
+}
+
+interface GalleryMedia {
+  id: string;
+  mediaType: 'image' | 'video';
+  url: string;
+  altText: string | null;
+  caption: string | null;
 }
 
 interface AssetOption {
@@ -66,6 +75,11 @@ export function ListingManager({
   ]);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const [media, setMedia] = useState<GalleryMedia[]>([]);
+  const [mediaType, setMediaType] = useState<'image' | 'video'>('video');
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaCaption, setMediaCaption] = useState('');
+  const [mediaBusy, setMediaBusy] = useState(false);
 
   useEffect(() => {
     void loadData();
@@ -115,6 +129,7 @@ export function ListingManager({
     setProductId('');
     setLinks([{ marketplaceSourceId: marketplaces[0]?.id ?? '', productUrl: '', marketplaceProductId: '', label: '' }]);
     setFormError('');
+    setMedia([]);
     setShowForm(true);
   }
 
@@ -132,7 +147,78 @@ export function ListingManager({
         : [{ marketplaceSourceId: marketplaces[0]?.id ?? '', productUrl: '', marketplaceProductId: '', label: '' }],
     );
     setFormError('');
+    setMedia(listing.galleryMedia ?? []);
     setShowForm(true);
+  }
+
+  async function addRemoteMedia() {
+    if (!editingId || !mediaUrl.trim()) return;
+    setMediaBusy(true);
+    setFormError('');
+    try {
+      const response = await fetch(`/api/creator/listings/${editingId}/media`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mediaType,
+          url: mediaUrl.trim(),
+          caption: mediaCaption.trim() || undefined,
+          altText: mediaType === 'image' ? mediaCaption.trim() || undefined : undefined,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not add media');
+      setMedia((current) => [...current, data.media]);
+      setMediaUrl('');
+      setMediaCaption('');
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Could not add media');
+    } finally {
+      setMediaBusy(false);
+    }
+  }
+
+  async function uploadGalleryImage(file: File | null) {
+    if (!editingId || !file) return;
+    setMediaBusy(true);
+    setFormError('');
+    const form = new FormData();
+    form.append('image', file);
+    form.append('altText', mediaCaption.trim());
+    form.append('caption', mediaCaption.trim());
+    try {
+      const response = await fetch(`/api/creator/listings/${editingId}/media`, {
+        method: 'POST',
+        body: form,
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not upload image');
+      setMedia((current) => [...current, data.media]);
+      setMediaCaption('');
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Could not upload image');
+    } finally {
+      setMediaBusy(false);
+    }
+  }
+
+  async function removeMedia(mediaId: string) {
+    if (!editingId) return;
+    setMediaBusy(true);
+    setFormError('');
+    try {
+      const response = await fetch(
+        `/api/creator/listings/${editingId}/media?${new URLSearchParams({ mediaId })}`,
+        { method: 'DELETE' },
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not remove media');
+      setMedia((current) => current.filter((item) => item.id !== mediaId));
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Could not remove media');
+    } finally {
+      setMediaBusy(false);
+    }
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -270,7 +356,7 @@ export function ListingManager({
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="app-panel-raised max-h-[90vh] w-full max-w-lg overflow-y-auto p-5 shadow-2xl sm:p-6">
+          <div className="app-panel-raised max-h-[90vh] w-full max-w-2xl overflow-y-auto p-5 shadow-2xl sm:p-6">
             <h3 className="text-lg font-semibold text-white">
               {editingId ? 'Edit listing' : 'List asset in gallery'}
             </h3>
@@ -383,6 +469,67 @@ export function ListingManager({
                     )}
                   </div>
                 ))}
+              </div>
+
+              <div className="space-y-3 border-t border-white/10 pt-4">
+                <div>
+                  <label className="text-sm font-medium text-zinc-300">Storefront gallery</label>
+                  <p className="mt-1 text-xs leading-5 text-zinc-500">
+                    Add up to 12 large images or videos. These appear only on the public gallery listing and are never copied into a buyer&apos;s library.
+                  </p>
+                </div>
+
+                {!editingId ? (
+                  <div className="rounded-xl border border-dashed border-white/10 bg-black/15 p-4 text-xs text-zinc-500">
+                    Save the listing first, then choose Edit listing to add storefront media.
+                  </div>
+                ) : (
+                  <>
+                    {media.length > 0 && (
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {media.map((item) => (
+                          <div key={item.id} className="flex min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-2.5">
+                            <div className="flex h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white/5">
+                              {item.mediaType === 'image' ? (
+                                <img src={item.url} alt="" className="h-full w-full object-cover" />
+                              ) : (
+                                <svg className="h-5 w-5 text-indigo-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-xs font-medium text-zinc-300">{item.caption || (item.mediaType === 'image' ? 'Gallery image' : 'Gallery video')}</p>
+                              <p className="truncate font-mono text-[0.6rem] text-zinc-600">{item.mediaType}</p>
+                            </div>
+                            <button type="button" onClick={() => void removeMedia(item.id)} disabled={mediaBusy} className="rounded-lg px-2 py-1 text-xs text-zinc-500 hover:bg-white/5 hover:text-red-300 disabled:opacity-40" aria-label="Remove media">Remove</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="rounded-xl border border-white/10 bg-black/15 p-3">
+                      <input
+                        type="text"
+                        value={mediaCaption}
+                        onChange={(e) => setMediaCaption(e.target.value)}
+                        placeholder="Optional caption or image description"
+                        className="field-control !py-2.5"
+                      />
+                      <div className="mt-2 grid gap-2 sm:grid-cols-[8rem_1fr_auto]">
+                        <select value={mediaType} onChange={(e) => setMediaType(e.target.value as 'image' | 'video')} className="field-control !py-2.5">
+                          <option value="video">Video URL</option>
+                          <option value="image">Image URL</option>
+                        </select>
+                        <input type="url" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder={mediaType === 'video' ? 'YouTube, Vimeo, or direct video URL' : 'https://…/image.jpg'} className="field-control !py-2.5" />
+                        <button type="button" onClick={() => void addRemoteMedia()} disabled={mediaBusy || !mediaUrl.trim() || media.length >= 12} className="btn-secondary !px-4 !py-2.5 disabled:opacity-40">Add URL</button>
+                      </div>
+                      <div className="my-3 flex items-center gap-3 text-[0.65rem] uppercase tracking-[0.14em] text-zinc-600"><span className="h-px flex-1 bg-white/10" />or<span className="h-px flex-1 bg-white/10" /></div>
+                      <label className="btn-secondary w-full cursor-pointer !py-2.5 text-center disabled:opacity-40">
+                        {mediaBusy ? 'Working…' : 'Upload a large image'}
+                        <input type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/avif,image/tiff" disabled={mediaBusy || media.length >= 12} className="hidden" onChange={(e) => { void uploadGalleryImage(e.target.files?.[0] ?? null); e.target.value = ''; }} />
+                      </label>
+                    </div>
+                  </>
+                )}
               </div>
 
               {formError && <p className="text-sm text-red-400">{formError}</p>}

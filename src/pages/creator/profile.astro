@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import CreatorNav from '../../components/CreatorNav.astro';
 import { CreatorOnboardingForm } from '../../components/CreatorOnboardingForm';
+import { CreatorProfileEditor } from '../../components/CreatorProfileEditor';
 import { getCreatorUserFromContext, getLinkedCreator } from '../../lib/creator';
 import {
   getLatestApplication,
@@ -38,9 +39,7 @@ function serializeApp(row: NonNullable<typeof pending>) {
       <div>
       <p class="app-kicker">Creator studio</p>
       <h1 class="app-title">Creator profile</h1>
-      <p class="app-description">
-        Your verified creator identity. Changes require admin approval.
-      </p>
+      <p class="app-description">Shape the public page that brings your work and storefronts together.</p>
       </div>
     </div>
 
@@ -53,5 +52,22 @@ function serializeApp(row: NonNullable<typeof pending>) {
       initialPending={pending ? serializeApp(pending) : null}
       initialLatest={latest ? serializeApp(latest) : null}
     />
+
+    {linked && (
+      <div class="mt-6">
+        <CreatorProfileEditor
+          client:load
+          creator={{
+            id: linked.id,
+            name: linked.name,
+            slug: linked.slug,
+            bio: linked.bio,
+            avatarUrl: linked.avatarUrl,
+            profileImageUrl: linked.profileImageUrl,
+            headerImageUrl: linked.headerImageUrl,
+          }}
+        />
+      </div>
+    )}
   </div>
 </BaseLayout>

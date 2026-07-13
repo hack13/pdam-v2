@@ -5,6 +5,7 @@ import {
   ownershipVerifications,
   marketplaceClickEvents,
   galleryPurchaseLinks,
+  galleryListingMedia,
   marketplaceSources,
 } from '../db/schema';
 
@@ -86,6 +87,13 @@ export async function getCreatorListings(creatorUserId: string) {
           where: inArray(galleryPurchaseLinks.productId, listingIds),
         })
       : [];
+  const media =
+    listingIds.length > 0
+      ? await db.query.galleryListingMedia.findMany({
+          where: inArray(galleryListingMedia.productId, listingIds),
+          orderBy: (table, { asc }) => [asc(table.sortOrder)],
+        })
+      : [];
 
   const ownershipCounts =
     listingIds.length > 0
@@ -121,15 +129,22 @@ export async function getCreatorListings(creatorUserId: string) {
   );
   const clickMap = Object.fromEntries(clickCounts.map((r) => [r.productId, Number(r.count)]));
   const linksByProduct = new Map<string, typeof links>();
+  const mediaByProduct = new Map<string, typeof media>();
   for (const link of links) {
     const list = linksByProduct.get(link.productId) ?? [];
     list.push(link);
     linksByProduct.set(link.productId, list);
   }
+  for (const item of media) {
+    const list = mediaByProduct.get(item.productId) ?? [];
+    list.push(item);
+    mediaByProduct.set(item.productId, list);
+  }
 
   return listings.map((listing) => ({
     ...listing,
     purchaseLinks: linksByProduct.get(listing.id) ?? [],
+    galleryMedia: mediaByProduct.get(listing.id) ?? [],
     ownershipConfirmations: ownershipMap[listing.id] ?? 0,
     marketplaceClicks: clickMap[listing.id] ?? 0,
   }));

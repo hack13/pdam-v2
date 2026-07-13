@@ -98,3 +98,7 @@ export async function processAvatarToWebp(input: Buffer): Promise<ProcessedImage
     frameCount: 1,
   };
 }
+
+export async function processCreatorHeaderToWebp(input: Buffer): Promise<ProcessedImage> {
+  return processToWebp(input, { maxWidth: 2400, quality: 86 });
+}

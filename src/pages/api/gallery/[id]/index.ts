@@ -9,6 +9,7 @@ import {
   creators,
   fileThumbnails,
   ownershipVerifications,
+  galleryListingMedia,
 } from '../../../../db/schema';
 import { json, jsonError } from '../../../../lib/api-helpers';
 import { getSessionFromContext } from '../../../../lib/session';
@@ -53,6 +54,10 @@ export const GET: APIRoute = async (context) => {
   const versions = await db.query.productVersions.findMany({
     where: eq(productVersions.productId, productId),
     orderBy: [productVersions.createdAt],
+  });
+  const media = await db.query.galleryListingMedia.findMany({
+    where: eq(galleryListingMedia.productId, productId),
+    orderBy: (table, { asc }) => [asc(table.sortOrder)],
   });
 
   const session = await getSessionFromContext(context);
@@ -106,6 +111,7 @@ export const GET: APIRoute = async (context) => {
           }
         : null,
     })),
+    galleryMedia: media.map(({ storageKey: _storageKey, ...item }) => item),
     versions: versions.map((v) => ({
       id: v.id,
       version: v.version,
