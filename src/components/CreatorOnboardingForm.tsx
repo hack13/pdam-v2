@@ -159,7 +159,7 @@ export function CreatorOnboardingForm({
           <p className="font-mono text-[0.68rem] uppercase tracking-[0.16em] text-cyan-300">Verified identity</p>
           <h2 className="mt-2 text-xl font-semibold text-white">{linked.name}</h2>
           <p className="mt-1 text-sm text-zinc-300">
-            Your account is approved to represent this catalog across PDAM.
+            Your account is approved to represent this catalog across TailCache.
           </p>
           <p className="mt-3 text-xs text-zinc-500">
             To change which catalog creator you represent, submit a new application below. An admin

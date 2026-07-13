@@ -4,6 +4,6 @@ import { BrowserSyncClient } from '../../components/BrowserSyncClient';
 import SyncNav from '../../components/SyncNav.astro';
 ---
 
-<BaseLayout title="Local Sync - PDAM" isAuthenticated={false}>
+<BaseLayout title="Local Sync - TailCache" isAuthenticated={false}>
   <div class="app-page"><div class="app-header"><div><p class="app-kicker">On-device backup</p><h1 class="app-title">Local client</h1><p class="app-description">Sync directly to a folder on this computer.</p></div></div><SyncNav current="client" /><BrowserSyncClient client:load /></div>
 </BaseLayout>

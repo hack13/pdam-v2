@@ -6,7 +6,7 @@ const session = await getSessionFromContext(Astro);
 const isAuthenticated = !!session?.user;
 ---
 
-<BaseLayout title="API Reference - PDAM" isAuthenticated={isAuthenticated}>
+<BaseLayout title="API Reference - TailCache" isAuthenticated={isAuthenticated}>
   <!-- Swagger UI base styles (self-hosted). Dark overrides follow after this link. -->
   <link rel="stylesheet" href="/api/swagger-ui/swagger-ui.css" />
 
@@ -16,7 +16,7 @@ const isAuthenticated = !!session?.user;
         <p class="text-sm font-medium text-indigo-400">Developers</p>
         <h1 class="mt-1 text-3xl font-bold text-white">API Reference</h1>
         <p class="mt-2 max-w-2xl text-sm text-zinc-400">
-          Programmatic access to your PDAM library, marketplaces, and profile.
+          Programmatic access to your TailCache library, marketplaces, and profile.
           Authenticate with an API key and try any endpoint right here.
         </p>
       </div>
@@ -63,20 +63,20 @@ const isAuthenticated = !!session?.user;
     });
   </script>
 
-  <!-- Dark theme overrides for Swagger UI, matching the PDAM palette.
+  <!-- Dark theme overrides for Swagger UI, matching the TailCache palette.
        Placed inline after swagger-ui.css so the cascade favours these rules. -->
   <style is:inline>
     #swagger-ui {
-      --pdam-bg: transparent;
-      --pdam-panel: rgba(255, 255, 255, 0.03);
-      --pdam-border: rgba(255, 255, 255, 0.1);
-      --pdam-text: #e4e4e7;
-      --pdam-muted: #a1a1aa;
-      --pdam-accent: #818cf8;
+      --tailcache-bg: transparent;
+      --tailcache-panel: rgba(255, 255, 255, 0.035);
+      --tailcache-border: rgba(255, 255, 255, 0.1);
+      --tailcache-text: #f8fafc;
+      --tailcache-muted: #a7b0c0;
+      --tailcache-accent: #7e3ff2;
     }
     #swagger-ui,
     #swagger-ui .swagger-ui {
-      color: var(--pdam-text);
+      color: var(--tailcache-text);
     }
     /* Hide the built-in top bar; the page already has a header. */
     #swagger-ui .topbar { display: none; }
@@ -91,45 +91,45 @@ const isAuthenticated = !!session?.user;
     #swagger-ui .info h1,
     #swagger-ui .info h2,
     #swagger-ui .info h3 {
-      color: var(--pdam-text) !important;
+      color: var(--tailcache-text) !important;
     }
-    #swagger-ui .info a { color: var(--pdam-accent) !important; }
-    #swagger-ui .info .title small pre { background: var(--pdam-border) !important; }
+    #swagger-ui .info a { color: var(--tailcache-accent) !important; }
+    #swagger-ui .info .title small pre { background: var(--tailcache-border) !important; }
 
     /* Scheme / authorize bar */
     #swagger-ui .scheme-container {
       background: transparent !important;
       box-shadow: none !important;
-      border-bottom: 1px solid var(--pdam-border);
+      border-bottom: 1px solid var(--tailcache-border);
       padding: 1rem 1.25rem;
     }
     #swagger-ui .scheme-container .schemes-title,
-    #swagger-ui label { color: var(--pdam-text) !important; }
+    #swagger-ui label { color: var(--tailcache-text) !important; }
 
     /* Tag section headers */
     #swagger-ui .opblock-tag {
-      color: var(--pdam-text) !important;
-      border-bottom: 1px solid var(--pdam-border);
+      color: var(--tailcache-text) !important;
+      border-bottom: 1px solid var(--tailcache-border);
     }
-    #swagger-ui .opblock-tag small { color: var(--pdam-muted) !important; }
+    #swagger-ui .opblock-tag small { color: var(--tailcache-muted) !important; }
     #swagger-ui .opblock-tag:hover { background: rgba(255, 255, 255, 0.02); }
 
     /* Operation blocks */
     #swagger-ui .opblock {
-      background: var(--pdam-panel) !important;
-      border: 1px solid var(--pdam-border) !important;
+      background: var(--tailcache-panel) !important;
+      border: 1px solid var(--tailcache-border) !important;
       border-radius: 10px !important;
       box-shadow: none !important;
       margin: 0 0 12px 0;
     }
     #swagger-ui .opblock .opblock-summary {
-      border-color: var(--pdam-border) !important;
+      border-color: var(--tailcache-border) !important;
     }
     #swagger-ui .opblock .opblock-summary-path,
     #swagger-ui .opblock .opblock-summary-path__deprecated,
     #swagger-ui .opblock .opblock-summary-description,
     #swagger-ui .opblock .opblock-summary-operation-id {
-      color: var(--pdam-text) !important;
+      color: var(--tailcache-text) !important;
     }
     #swagger-ui .opblock-description-wrapper p,
     #swagger-ui .opblock-external-docs-wrapper p,
@@ -144,12 +144,12 @@ const isAuthenticated = !!session?.user;
     #swagger-ui .response-col_description,
     #swagger-ui .responses-inner h4,
     #swagger-ui .responses-inner h5 {
-      color: var(--pdam-text) !important;
+      color: var(--tailcache-text) !important;
     }
     #swagger-ui .parameter__in,
     #swagger-ui .tab li,
     #swagger-ui .opblock-section-header {
-      color: var(--pdam-muted) !important;
+      color: var(--tailcache-muted) !important;
     }
     #swagger-ui .opblock-section-header {
       background: rgba(255, 255, 255, 0.02) !important;
@@ -163,7 +163,7 @@ const isAuthenticated = !!session?.user;
     #swagger-ui .opblock.opblock-delete { border-color: rgba(239, 68, 68, 0.4) !important; }
 
     /* Tables & borders */
-    #swagger-ui table tbody tr td { border-color: var(--pdam-border) !important; color: var(--pdam-text) !important; }
+    #swagger-ui table tbody tr td { border-color: var(--tailcache-border) !important; color: var(--tailcache-text) !important; }
     #swagger-ui .parameters-col_description input,
     #swagger-ui select,
     #swagger-ui input[type=text],
@@ -171,15 +171,15 @@ const isAuthenticated = !!session?.user;
     #swagger-ui input[type=password],
     #swagger-ui textarea {
       background: #0b0b0e !important;
-      color: var(--pdam-text) !important;
-      border: 1px solid var(--pdam-border) !important;
+      color: var(--tailcache-text) !important;
+      border: 1px solid var(--tailcache-border) !important;
     }
     #swagger-ui select { appearance: auto; }
 
     /* Models */
     #swagger-ui section.models {
-      border: 1px solid var(--pdam-border) !important;
-      background: var(--pdam-panel) !important;
+      border: 1px solid var(--tailcache-border) !important;
+      background: var(--tailcache-panel) !important;
     }
     #swagger-ui section.models .model-container { background: rgba(255,255,255,0.02) !important; }
     #swagger-ui section.models h4,
@@ -187,7 +187,7 @@ const isAuthenticated = !!session?.user;
     #swagger-ui .model,
     #swagger-ui .model .property,
     #swagger-ui .prop-type {
-      color: var(--pdam-text) !important;
+      color: var(--tailcache-text) !important;
     }
     #swagger-ui .model-toggle:after { filter: invert(0.85); }
 
@@ -199,12 +199,12 @@ const isAuthenticated = !!session?.user;
       background: #0b0b0e !important;
       color: #e4e4e7 !important;
     }
-    #swagger-ui .response-col_links { color: var(--pdam-muted) !important; }
+    #swagger-ui .response-col_links { color: var(--tailcache-muted) !important; }
 
     /* Buttons */
     #swagger-ui .btn {
-      color: var(--pdam-text) !important;
-      border-color: var(--pdam-border) !important;
+      color: var(--tailcache-text) !important;
+      border-color: var(--tailcache-border) !important;
       box-shadow: none !important;
       background: rgba(255,255,255,0.04) !important;
     }
@@ -222,13 +222,13 @@ const isAuthenticated = !!session?.user;
     /* Dialogs (Authorize modal) */
     #swagger-ui .dialog-ux .modal-ux {
       background: #18181b !important;
-      border: 1px solid var(--pdam-border) !important;
+      border: 1px solid var(--tailcache-border) !important;
     }
     #swagger-ui .dialog-ux .modal-ux-header h3,
     #swagger-ui .dialog-ux .modal-ux-content h4,
     #swagger-ui .dialog-ux .modal-ux-content p,
     #swagger-ui .dialog-ux .modal-ux-content label {
-      color: var(--pdam-text) !important;
+      color: var(--tailcache-text) !important;
     }
     #swagger-ui .dialog-ux .backdrop-ux { background: rgba(0,0,0,0.6) !important; }
 
@@ -238,8 +238,8 @@ const isAuthenticated = !!session?.user;
     #swagger-ui .renderedMarkdown p,
     #swagger-ui small,
     #swagger-ui .tab li button.tablinks {
-      color: var(--pdam-muted) !important;
+      color: var(--tailcache-muted) !important;
     }
-    #swagger-ui svg.arrow { fill: var(--pdam-muted) !important; }
+    #swagger-ui svg.arrow { fill: var(--tailcache-muted) !important; }
   </style>
 </BaseLayout>

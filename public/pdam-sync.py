@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sync a PDAM library to a local directory using only Python's standard library."""
+"""Sync a TailCache library to a local directory using only Python's standard library."""
 
 import hashlib
 import json
@@ -11,11 +11,11 @@ from pathlib import Path
 
 
 def main():
-    base_url = os.environ.get("PDAM_URL") or (sys.argv[1] if len(sys.argv) > 1 else None)
-    token = os.environ.get("PDAM_SYNC_TOKEN") or (sys.argv[2] if len(sys.argv) > 2 else None)
-    root = os.environ.get("PDAM_SYNC_DIR") or (sys.argv[3] if len(sys.argv) > 3 else "./pdam-backup")
+    base_url = os.environ.get("TAILCACHE_URL") or os.environ.get("PDAM_URL") or (sys.argv[1] if len(sys.argv) > 1 else None)
+    token = os.environ.get("TAILCACHE_SYNC_TOKEN") or os.environ.get("PDAM_SYNC_TOKEN") or (sys.argv[2] if len(sys.argv) > 2 else None)
+    root = os.environ.get("TAILCACHE_SYNC_DIR") or os.environ.get("PDAM_SYNC_DIR") or (sys.argv[3] if len(sys.argv) > 3 else "./tailcache-backup")
     if not base_url or not token:
-        print("Usage: pdam-sync.py <PDAM_URL> <SYNC_TOKEN> [DIRECTORY]", file=sys.stderr)
+        print("Usage: tailcache-sync.py <TAILCACHE_URL> <SYNC_TOKEN> [DIRECTORY]", file=sys.stderr)
         return 2
 
     base_url = base_url.rstrip("/")

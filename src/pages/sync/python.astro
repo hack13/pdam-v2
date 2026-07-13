@@ -4,6 +4,6 @@ import { PythonSyncManager } from '../../components/PythonSyncManager';
 import SyncNav from '../../components/SyncNav.astro';
 ---
 
-<BaseLayout title="Python Sync - PDAM" isAuthenticated={true}>
+<BaseLayout title="Python Sync - TailCache" isAuthenticated={true}>
   <div class="app-page"><div class="app-header"><div><p class="app-kicker">Command-line workflow</p><h1 class="app-title">Python sync</h1><p class="app-description">Use the readable Python client when your browser cannot write directly to a local folder.</p></div></div><SyncNav current="python" /><PythonSyncManager client:load /></div>
 </BaseLayout>

@@ -28,34 +28,35 @@
 @layer base {
   :root {
     color-scheme: dark;
-    --pdam-ink: #f8fafc;
-    --pdam-muted: #a7b0c0;
-    --pdam-night: #090d14;
-    --pdam-panel: #121722;
-    --pdam-panel-raised: #171d2a;
-    --pdam-line: rgba(255, 255, 255, 0.1);
-    --pdam-violet: #7e3ff2;
-    --pdam-magenta: #a855f7;
-    --pdam-indigo: #6366f1;
-    --pdam-blue: #3b82f6;
-    --pdam-cyan: #0ea5e9;
-    --color-primary: var(--pdam-violet);
+    --tailcache-ink: #f8fafc;
+    --tailcache-muted: #a7b0c0;
+    --tailcache-night: #080c14;
+    --tailcache-panel: #101722;
+    --tailcache-panel-raised: #151d2a;
+    --tailcache-line: rgba(255, 255, 255, 0.1);
+    --tailcache-violet: #7e3ff2;
+    --tailcache-magenta: #a855f7;
+    --tailcache-indigo: #6366f1;
+    --tailcache-blue: #3b82f6;
+    --tailcache-cyan: #0ea5e9;
+    --color-primary: var(--tailcache-violet);
     --color-primary-dark: #6d32dc;
-    --color-secondary: var(--pdam-indigo);
-    --color-accent: var(--pdam-cyan);
+    --color-secondary: var(--tailcache-indigo);
+    --color-accent: var(--tailcache-cyan);
   }
 
   html {
     scroll-behavior: smooth;
-    background: var(--pdam-night);
+    background: var(--tailcache-night);
   }
 
   body {
     min-width: 320px;
-    color: var(--pdam-ink);
+    color: var(--tailcache-ink);
     background:
-      radial-gradient(circle at 12% -8%, rgba(126, 63, 242, 0.15), transparent 30rem),
-      var(--pdam-night);
+      radial-gradient(circle at 12% -8%, rgba(126, 63, 242, 0.16), transparent 30rem),
+      radial-gradient(circle at 88% 18%, rgba(14, 165, 233, 0.07), transparent 28rem),
+      var(--tailcache-night);
     font-family: var(--font-sans);
     line-height: 1.55;
   }
@@ -98,12 +99,12 @@
 
   .btn-secondary {
     @apply inline-flex items-center justify-center rounded-xl border border-white/10 px-6 py-3 text-sm font-semibold text-white transition-all duration-200;
-    background: var(--pdam-panel);
+    background: var(--tailcache-panel);
   }
 
   .btn-secondary:hover {
     @apply border-white/20;
-    background: var(--pdam-panel-raised);
+    background: var(--tailcache-panel-raised);
   }
 
   .brand-gradient-text {
@@ -122,7 +123,7 @@
 
   .brand-panel {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.022));
-    border: 1px solid var(--pdam-line);
+    border: 1px solid var(--tailcache-line);
     box-shadow: 0 24px 70px rgba(0, 0, 0, 0.18);
   }
 

@@ -1,5 +1,5 @@
 /**
- * OpenAPI 3.1 specification for the PDAM public API.
+ * OpenAPI 3.1 specification for the TailCache public API.
  *
  * Served as JSON at `/api/openapi.json` and rendered with Swagger UI at `/api-docs`.
  * Authenticate requests with an API key generated from the Account Dashboard,
@@ -9,10 +9,10 @@ export function buildOpenApiSpec(serverUrl: string) {
   return {
     openapi: '3.1.0',
     info: {
-      title: 'PDAM API',
+      title: 'TailCache API',
       version: '1.0.0',
       description:
-        'Public API for the Personal Digital Asset Manager (PDAM).\n\n' +
+        'Public API for the TailCache personal digital asset library.\n\n' +
         'All endpoints require authentication with an API key. Generate one from your ' +
         'Account Dashboard, then send it as the `x-api-key` header or as a ' +
         '`Authorization: Bearer <key>` header. Session cookies are also accepted when ' +

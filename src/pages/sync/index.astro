@@ -26,7 +26,7 @@ const lastBackup = connections.map((connection) => connection.lastSuccessfulSync
 const failedRuns = recentRuns.filter((run) => run.status === 'failed' || run.status === 'partial').length;
 ---
 
-<BaseLayout title="Sync Overview - PDAM" isAuthenticated={true}>
+<BaseLayout title="Sync Overview - TailCache" isAuthenticated={true}>
   <div class="app-page">
     <div class="app-header">
       <div>

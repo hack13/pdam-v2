@@ -81,8 +81,8 @@ export function BackupSyncManager() {
         <h3 className="font-medium text-white">Add destination</h3>
         <select value={providerType} onChange={(event) => setProviderType(event.target.value)} className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white"><option value="s3">S3-compatible</option><option value="webdav">WebDAV / Nextcloud</option><option value="google-drive">Google Drive</option></select>
         {providerType === 'google-drive' ? <>
-          <p className="text-sm text-zinc-400">Authorize a dedicated PDAM folder in your Google Drive. PDAM can only access files it creates.</p>
-          <input value={form.rootPath} onChange={(event) => update('rootPath', event.target.value)} placeholder="Drive folder (PDAM Backups)" className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white placeholder-zinc-500" />
+          <p className="text-sm text-zinc-400">Authorize a dedicated TailCache folder in your Google Drive. TailCache can only access files it creates.</p>
+          <input value={form.rootPath} onChange={(event) => update('rootPath', event.target.value)} placeholder="Drive folder (TailCache Backups)" className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white placeholder-zinc-500" />
           <button type="button" onClick={() => void authorizeGoogleDrive()} disabled={busy} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">Connect Google Drive</button>
         </> : <>
         {['name', 'endpoint'].map((key) => <input key={key} required value={form[key]} onChange={(event) => update(key, event.target.value)} placeholder={key === 'name' ? 'Destination name' : 'https://storage.example.com'} className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white placeholder-zinc-500" />)}

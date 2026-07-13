@@ -7,6 +7,6 @@ const session = await getSessionFromContext(Astro);
 const isAuthenticated = !!session?.user;
 ---
 
-<BaseLayout title="PDAM - Personal Digital Asset Manager" isAuthenticated={isAuthenticated}>
+<BaseLayout title="TailCache - Your personal asset library" isAuthenticated={isAuthenticated}>
   <Hero isAuthenticated={isAuthenticated} />
 </BaseLayout>

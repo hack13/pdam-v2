@@ -32,7 +32,7 @@ export const POST: APIRoute = async (context) => {
       providerType,
       providerName: 'Google Drive',
       externalAccountId: googleAccount.accountId,
-      rootPath: body.rootPath ? String(body.rootPath) : 'PDAM Backups',
+      rootPath: body.rootPath ? String(body.rootPath) : 'TailCache Backups',
       credentialsEncrypted: encryptSyncSecret(JSON.stringify({
         accessToken: googleAccount.accessToken,
         refreshToken: googleAccount.refreshToken,

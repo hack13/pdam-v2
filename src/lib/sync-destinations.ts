@@ -150,7 +150,7 @@ class GoogleDriveSyncDestination implements SyncDestination {
   }
 
   private async folderFor(key: string) {
-    if (!this.rootFolderId) this.rootFolderId = await this.findOrCreateFolder(this.rootPath || 'PDAM Backups');
+    if (!this.rootFolderId) this.rootFolderId = await this.findOrCreateFolder(this.rootPath || 'TailCache Backups');
     let folderId = this.rootFolderId;
     for (const part of key.split('/').slice(0, -1).filter(Boolean)) folderId = await this.findOrCreateFolder(part, folderId);
     return folderId;

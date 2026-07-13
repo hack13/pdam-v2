@@ -30,7 +30,7 @@ function passkeyOriginConfig() {
 const { rpID, origin } = passkeyOriginConfig();
 
 export const auth = betterAuth({
-  appName: 'PDAM',
+  appName: 'TailCache',
   baseURL: betterAuthUrl,
   secret: betterAuthSecret,
   advanced: {
@@ -66,9 +66,9 @@ export const auth = betterAuth({
   },
   account: {
     accountLinking: {
-      // Drive accounts are often separate from the email used for PDAM.
-      // Linking still requires an authenticated PDAM session and Google OAuth
-      // confirmation; the PDAM account email is never changed by this.
+      // Drive accounts are often separate from the email used for TailCache.
+      // Linking still requires an authenticated TailCache session and Google OAuth
+      // confirmation; the TailCache account email is never changed by this.
       allowDifferentEmails: true,
     },
   },
@@ -119,7 +119,7 @@ export const auth = betterAuth({
       },
     }),
     passkey({
-      rpName: 'PDAM',
+      rpName: 'TailCache',
       rpID,
       origin,
       registration: {

@@ -148,7 +148,7 @@ export function WebhookManager() {
           <p className="app-kicker !text-zinc-500">Ownership infrastructure</p>
           <h2 className="mt-1 text-xl font-semibold text-white">Verification endpoints</h2>
           <p className="mt-1 text-sm text-zinc-400">
-            PDAM sends license checks to your service so the final ownership decision stays under your control.
+            TailCache sends license checks to your service so the final ownership decision stays under your control.
           </p>
         </div>
         <button type="button" onClick={() => setShowForm(true)} className="btn-primary">
@@ -162,7 +162,7 @@ export function WebhookManager() {
           <span className="text-zinc-500 transition-transform group-open:rotate-180">⌄</span>
         </summary>
         <p className="mt-4 border-t border-white/[0.07] pt-4">
-          PDAM generates a unique signing secret for each verification endpoint. After you add or
+          TailCache generates a unique signing secret for each verification endpoint. After you add or
           rotate an endpoint, copy that secret into the service receiving these requests. It is
           shown only then, so store it somewhere safe.
         </p>

@@ -149,7 +149,7 @@ export function CreatorProfileEditor({ creator }: Props) {
 
         <div className="mt-5">
           <p className="font-display text-xl font-semibold text-white">{creator.name}</p>
-          <p className="mt-1 font-mono text-xs text-zinc-500">pdam.app/creators/{creator.slug}</p>
+          <p className="mt-1 font-mono text-xs text-zinc-500">tailcache.org/creators/{creator.slug}</p>
         </div>
 
         <form onSubmit={saveBio} className="mt-6 space-y-3">

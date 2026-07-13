@@ -4,51 +4,19 @@ interface Props {
 }
 
 const { current } = Astro.props;
+
+const links = [
+  { key: 'dashboard', label: 'Overview', href: '/admin' },
+  { key: 'users', label: 'Users', href: '/admin/users' },
+  { key: 'creator-applications', label: 'Creator applications', href: '/admin/creator-applications' },
+  { key: 'storage', label: 'Storage', href: '/admin/storage' },
+] as const;
 ---
 
-<nav class="mb-8 flex flex-wrap gap-2 border-b border-white/10 pb-4">
-  <a
-    href="/admin"
-    class:list={[
-      'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-      current === 'dashboard'
-        ? 'bg-indigo-500/20 text-indigo-300'
-        : 'text-zinc-400 hover:bg-white/5 hover:text-white',
-    ]}
-  >
-    Dashboard
-  </a>
-  <a
-    href="/admin/users"
-    class:list={[
-      'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-      current === 'users'
-        ? 'bg-indigo-500/20 text-indigo-300'
-        : 'text-zinc-400 hover:bg-white/5 hover:text-white',
-    ]}
-  >
-    User Management
-  </a>
-  <a
-    href="/admin/creator-applications"
-    class:list={[
-      'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-      current === 'creator-applications'
-        ? 'bg-indigo-500/20 text-indigo-300'
-        : 'text-zinc-400 hover:bg-white/5 hover:text-white',
-    ]}
-  >
-    Creator Applications
-  </a>
-  <a
-    href="/admin/storage"
-    class:list={[
-      'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-      current === 'storage'
-        ? 'bg-indigo-500/20 text-indigo-300'
-        : 'text-zinc-400 hover:bg-white/5 hover:text-white',
-    ]}
-  >
-    Storage
-  </a>
+<nav aria-label="Admin navigation" class="app-nav">
+  {links.map((link) => (
+    <a href={link.href} class="app-nav-link" aria-current={current === link.key ? 'page' : undefined}>
+      {link.label}
+    </a>
+  ))}
 </nav>

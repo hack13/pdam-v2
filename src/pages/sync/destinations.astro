@@ -7,7 +7,7 @@ const session = await getSessionFromContext(Astro);
 if (!session?.user) return Astro.redirect('/login');
 ---
 
-<BaseLayout title="Sync Destinations - PDAM" isAuthenticated={true}>
+<BaseLayout title="Sync Destinations - TailCache" isAuthenticated={true}>
   <div class="app-page">
     <div class="app-header"><div><p class="app-kicker">Sync infrastructure</p><h1 class="app-title">Destinations</h1><p class="app-description">Connect storage you control and create narrowly scoped tokens for your own machines.</p></div></div>
     <SyncNav current="destinations" />

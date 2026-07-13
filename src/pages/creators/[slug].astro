@@ -58,7 +58,7 @@ const version = creator.updatedAt.getTime();
 const withVersion = (url: string | null) => url?.startsWith('/api/') ? `${url}?v=${version}` : url;
 ---
 
-<BaseLayout title={`${creator.name} - Creator - PDAM`} isAuthenticated={isAuthenticated}>
+<BaseLayout title={`${creator.name} - Creator - TailCache`} isAuthenticated={isAuthenticated}>
   <div class="mx-auto max-w-7xl px-5 py-8 sm:px-6 sm:py-12">
     <section class="overflow-hidden rounded-[1.4rem] border border-white/10 bg-[#121722] shadow-[0_30px_90px_rgba(0,0,0,0.28)]">
       <div class="relative h-48 overflow-hidden border-b border-white/10 bg-[#0d121c] sm:h-72 lg:h-80">
@@ -94,7 +94,7 @@ const withVersion = (url: string | null) => url?.startsWith('/api/') ? `${url}?v
 
         <div class="mt-7 grid gap-6 border-t border-white/10 pt-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
           <p class="max-w-3xl whitespace-pre-line text-sm leading-7 text-zinc-300 sm:text-base">
-            {creator.bio || `${creator.name} publishes original digital products through PDAM.`}
+            {creator.bio || `${creator.name} publishes original digital products through TailCache.`}
           </p>
           <div class="flex items-center gap-3 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-zinc-500">
             <span class="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.65)]"></span>

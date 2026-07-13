@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import AdminNav from '../../components/AdminNav.astro';
+import BrandMark from '../../components/BrandMark.astro';
 import { getAdminUserFromContext } from '../../lib/admin';
 import { getAdminStats } from '../../lib/admin-stats';
 import { formatBytes } from '../../lib/storage-accounting';
@@ -18,74 +19,164 @@ const deduplicationSavings = stats.totalLogicalBytes - stats.totalPhysicalBytes;
 const savingsPercent = stats.totalLogicalBytes > 0
   ? Math.round((deduplicationSavings / stats.totalLogicalBytes) * 100)
   : 0;
+const physicalPercent = stats.totalLogicalBytes > 0
+  ? Math.max(0, Math.min(100, (stats.totalPhysicalBytes / stats.totalLogicalBytes) * 100))
+  : 0;
+
+const inventoryStats = [
+  {
+    label: 'Users',
+    value: stats.totalUsers,
+    detail: 'Accounts with TailCache access',
+    href: '/admin/users',
+  },
+  {
+    label: 'Assets',
+    value: stats.totalAssets,
+    detail: 'Records across every library',
+  },
+  {
+    label: 'Unique files',
+    value: stats.totalUniqueFiles,
+    detail: 'Content-addressed storage blobs',
+  },
+  {
+    label: 'Creators',
+    value: stats.totalCreators,
+    detail: 'Documented catalog identities',
+  },
+] as const;
 ---
 
-<BaseLayout title="Admin Dashboard - PDAM" isAuthenticated={isAuthenticated}>
-  <div class="mx-auto max-w-7xl px-6 py-12">
-    <div class="mb-2">
-      <h1 class="text-3xl font-bold text-white">Admin Dashboard</h1>
-      <p class="mt-1 text-sm text-zinc-400">System-wide overview and management.</p>
+<BaseLayout title="Admin Dashboard - TailCache" isAuthenticated={isAuthenticated}>
+  <div class="app-page">
+    <div class="app-header">
+      <div>
+        <p class="app-kicker">TailCache operations</p>
+        <h1 class="app-title">Admin control room</h1>
+        <p class="app-description">Monitor the archive, manage access, and keep storage accounting healthy.</p>
+      </div>
+      <div class="flex w-fit items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/[0.07] px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-cyan-300">
+        <span class="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.8)]" aria-hidden="true"></span>
+        Admin access
+      </div>
     </div>
 
     <AdminNav current="dashboard" />
 
-    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      <div class="rounded-xl border border-white/10 bg-white/5 p-6 md:col-span-2 lg:col-span-1">
-        <p class="text-sm text-zinc-400">Storage Overview</p>
-        <div class="mt-4 space-y-3">
+    <section class="app-panel-raised relative overflow-hidden p-6 sm:p-8" aria-labelledby="storage-heading">
+      <div class="pointer-events-none absolute -right-16 -top-20 opacity-[0.06] sm:-right-8 sm:-top-24 sm:opacity-[0.1]" aria-hidden="true">
+        <BrandMark class="h-64 w-64 object-contain" alt="" />
+      </div>
+
+      <div class="relative">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <div class="flex items-baseline justify-between">
-              <span class="text-xs text-zinc-500">Logical</span>
-              <span class="text-lg font-semibold text-white">{formatBytes(stats.totalLogicalBytes)}</span>
-            </div>
-            <p class="mt-0.5 text-xs text-zinc-600">Total file size before deduplication</p>
+            <p class="app-kicker !text-zinc-500">Storage efficiency</p>
+            <h2 id="storage-heading" class="mt-2 max-w-2xl text-2xl font-semibold text-white sm:text-3xl">
+              {deduplicationSavings > 0
+                ? `${formatBytes(deduplicationSavings)} kept out of physical storage`
+                : 'Storage is fully accounted for'}
+            </h2>
+            <p class="mt-2 max-w-xl text-sm leading-6 text-zinc-400">
+              TailCache stores each unique file once while preserving every logical library reference.
+            </p>
           </div>
-          <div class="border-t border-white/5 pt-3">
-            <div class="flex items-baseline justify-between">
-              <span class="text-xs text-zinc-500">Physical</span>
-              <span class="text-lg font-semibold text-white">{formatBytes(stats.totalPhysicalBytes)}</span>
-            </div>
-            <p class="mt-0.5 text-xs text-zinc-600">Actual storage on disk</p>
+          <div class="w-fit shrink-0 rounded-xl border border-indigo-400/20 bg-indigo-500/10 px-4 py-3 sm:text-right">
+            <p class="font-display text-2xl font-bold text-white">{Math.max(0, savingsPercent)}%</p>
+            <p class="mt-0.5 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-indigo-300">space recovered</p>
           </div>
-          {deduplicationSavings > 0 && (
-            <div class="rounded-lg bg-green-500/10 px-3 py-2 text-xs text-green-400">
-              {formatBytes(deduplicationSavings)} saved ({savingsPercent}% deduplication)
+        </div>
+
+        <div class="mt-8 grid gap-6 sm:grid-cols-2">
+          <div>
+            <div class="flex items-end justify-between gap-3">
+              <div>
+                <p class="font-mono text-[0.64rem] uppercase tracking-[0.16em] text-zinc-500">Logical library</p>
+                <p class="mt-1 font-display text-2xl font-semibold text-white">{formatBytes(stats.totalLogicalBytes)}</p>
+              </div>
+              <p class="pb-1 text-xs text-zinc-500">Before deduplication</p>
             </div>
-          )}
+          </div>
+          <div>
+            <div class="flex items-end justify-between gap-3">
+              <div>
+                <p class="font-mono text-[0.64rem] uppercase tracking-[0.16em] text-zinc-500">Physical footprint</p>
+                <p class="mt-1 font-display text-2xl font-semibold text-white">{formatBytes(stats.totalPhysicalBytes)}</p>
+              </div>
+              <p class="pb-1 text-xs text-zinc-500">Actually stored</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6">
+          <div class="h-2 overflow-hidden rounded-full bg-indigo-400/15" aria-label={`${physicalPercent.toFixed(0)}% of logical storage is physically stored`}>
+            <div
+              class="h-full rounded-full bg-gradient-to-r from-indigo-500 via-violet-400 to-cyan-400 shadow-[0_0_18px_rgba(126,63,242,0.38)]"
+              style={`width: ${physicalPercent}%`}
+            ></div>
+          </div>
+          <div class="mt-2 flex flex-wrap items-center justify-between gap-2 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-zinc-600">
+            <span>{physicalPercent.toFixed(0)}% physical</span>
+            <span>{Math.max(0, savingsPercent)}% deduplicated</span>
+          </div>
+        </div>
+
+        <a href="/admin/storage" class="mt-6 inline-flex items-center gap-2 text-sm font-medium text-indigo-300 hover:text-indigo-200">
+          Inspect storage accounting <span aria-hidden="true">&rarr;</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="mt-6" aria-labelledby="inventory-heading">
+      <div class="mb-3 flex items-end justify-between gap-4">
+        <div>
+          <p class="app-kicker !text-zinc-500">System inventory</p>
+          <h2 id="inventory-heading" class="mt-1 text-lg font-semibold text-white">Archive at a glance</h2>
         </div>
       </div>
 
-      <div class="rounded-xl border border-white/10 bg-white/5 p-6">
-        <p class="text-sm text-zinc-400">Total Users</p>
-        <p class="mt-1 text-3xl font-bold text-white">{stats.totalUsers}</p>
-        <a href="/admin/users" class="mt-2 inline-block text-sm text-indigo-400 hover:text-indigo-300">Manage Users &rarr;</a>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {inventoryStats.map((stat, index) => (
+          <article class="app-stat min-h-36 p-5">
+            <div class="flex items-start justify-between gap-3">
+              <p class="app-kicker !text-zinc-500">{stat.label}</p>
+              <span class="font-mono text-[0.62rem] text-zinc-700">{String(index + 1).padStart(2, '0')}</span>
+            </div>
+            <p class="mt-3 font-display text-3xl font-bold text-white">{stat.value}</p>
+            <p class="mt-2 text-xs leading-5 text-zinc-500">{stat.detail}</p>
+            {'href' in stat && (
+              <a href={stat.href} class="mt-3 inline-block text-xs font-medium text-indigo-300 hover:text-indigo-200">Manage users &rarr;</a>
+            )}
+          </article>
+        ))}
       </div>
+    </section>
 
-      <div class="rounded-xl border border-white/10 bg-white/5 p-6">
-        <p class="text-sm text-zinc-400">Creator applications</p>
-        <p class="mt-1 text-sm text-zinc-300">Review onboarding requests before granting creator access.</p>
-        <a href="/admin/creator-applications" class="mt-2 inline-block text-sm text-indigo-400 hover:text-indigo-300">
-          Review applications &rarr;
-        </a>
-      </div>
+    <section class="mt-6 grid gap-4 md:grid-cols-2" aria-label="Admin actions">
+      <a href="/admin/creator-applications" class="app-panel group relative overflow-hidden p-5 transition-all hover:-translate-y-0.5 hover:border-cyan-400/30 sm:p-6">
+        <div class="absolute inset-y-0 left-0 w-px bg-cyan-400/60" aria-hidden="true"></div>
+        <div class="flex items-start justify-between gap-5">
+          <div>
+            <p class="app-kicker !text-cyan-300">Review queue</p>
+            <h2 class="mt-2 text-lg font-semibold text-white">Creator applications</h2>
+            <p class="mt-1 text-sm leading-6 text-zinc-400">Verify proof and decide who can publish under a catalog identity.</p>
+          </div>
+          <span class="text-cyan-300 transition-transform group-hover:translate-x-1" aria-hidden="true">&rarr;</span>
+        </div>
+      </a>
 
-      <div class="rounded-xl border border-white/10 bg-white/5 p-6">
-        <p class="text-sm text-zinc-400">Total Assets</p>
-        <p class="mt-1 text-3xl font-bold text-white">{stats.totalAssets}</p>
-        <p class="mt-1 text-xs text-zinc-500">Products stored across all users</p>
-      </div>
-
-      <div class="rounded-xl border border-white/10 bg-white/5 p-6">
-        <p class="text-sm text-zinc-400">Unique Files</p>
-        <p class="mt-1 text-3xl font-bold text-white">{stats.totalUniqueFiles}</p>
-        <p class="mt-1 text-xs text-zinc-500">Content-addressed blobs in storage</p>
-      </div>
-
-      <div class="rounded-xl border border-white/10 bg-white/5 p-6">
-        <p class="text-sm text-zinc-400">Creators Documented</p>
-        <p class="mt-1 text-3xl font-bold text-white">{stats.totalCreators}</p>
-        <p class="mt-1 text-xs text-zinc-500">Authors and creators in the catalog</p>
-      </div>
-    </div>
+      <a href="/admin/users" class="app-panel group relative overflow-hidden p-5 transition-all hover:-translate-y-0.5 hover:border-indigo-400/30 sm:p-6">
+        <div class="absolute inset-y-0 left-0 w-px bg-indigo-400/60" aria-hidden="true"></div>
+        <div class="flex items-start justify-between gap-5">
+          <div>
+            <p class="app-kicker !text-indigo-300">Access control</p>
+            <h2 class="mt-2 text-lg font-semibold text-white">User management</h2>
+            <p class="mt-1 text-sm leading-6 text-zinc-400">Review accounts, roles, verification state, and per-user archive usage.</p>
+          </div>
+          <span class="text-indigo-300 transition-transform group-hover:translate-x-1" aria-hidden="true">&rarr;</span>
+        </div>
+      </a>
+    </section>
   </div>
 </BaseLayout>
