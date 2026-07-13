@@ -13,6 +13,13 @@ const betterAuthUrl = runtimeEnv?.BETTER_AUTH_URL ?? process.env.BETTER_AUTH_URL
 const betterAuthSecret = runtimeEnv?.BETTER_AUTH_SECRET ?? process.env.BETTER_AUTH_SECRET;
 const googleClientId = runtimeEnv?.GOOGLE_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = runtimeEnv?.GOOGLE_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET;
+const trustedOrigins = [
+  betterAuthUrl,
+  ...(runtimeEnv?.BETTER_AUTH_TRUSTED_ORIGINS ?? process.env.BETTER_AUTH_TRUSTED_ORIGINS ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+].filter((origin): origin is string => Boolean(origin));
 
 function passkeyOriginConfig() {
   const baseURL = betterAuthUrl?.replace(/\/$/, '');
@@ -33,6 +40,7 @@ export const auth = betterAuth({
   appName: 'TailCache',
   baseURL: betterAuthUrl,
   secret: betterAuthSecret,
+  trustedOrigins,
   advanced: {
     defaultCookieAttributes: {
       httpOnly: true,

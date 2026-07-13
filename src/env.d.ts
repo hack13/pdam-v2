@@ -3,6 +3,7 @@
 interface ImportMetaEnv {
   readonly DATABASE_URL?: string;
   readonly BETTER_AUTH_URL?: string;
+  readonly BETTER_AUTH_TRUSTED_ORIGINS?: string;
   readonly BETTER_AUTH_SECRET?: string;
   readonly GOOGLE_CLIENT_ID?: string;
   readonly GOOGLE_CLIENT_SECRET?: string;
