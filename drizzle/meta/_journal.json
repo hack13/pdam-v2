@@ -64,6 +64,13 @@
       "when": 1784030400001,
       "tag": "0008_creator_gallery",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784030400002,
+      "tag": "0009_beta_invites",
+      "breakpoints": true
     }
   ]
 }
