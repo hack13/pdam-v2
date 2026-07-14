@@ -8,6 +8,14 @@ export default defineConfig({
   adapter: node({
     mode: 'standalone',
   }),
+  // Caddy terminates TLS before proxying to Astro over HTTP. Trust its
+  // forwarded public origin so Astro's built-in CSRF check compares requests
+  // against https://tailcache.org rather than the internal HTTP connection.
+  security: {
+    allowedDomains: [
+      { hostname: 'tailcache.org', protocol: 'https' },
+    ],
+  },
   vite: {
     plugins: [tailwindcss()],
   },
