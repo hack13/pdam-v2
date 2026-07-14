@@ -39,7 +39,10 @@ services:
       DATABASE_URL: postgresql://postgres:password@db:5432/pdam
       HOST: 0.0.0.0
       PORT: 4321
-      BETTER_AUTH_URL: http://localhost:4321
+      # Must exactly match the browser-facing application origin. Keeping this
+      # configurable lets Better Auth validate CSRF origins correctly on hosts
+      # other than localhost.
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:4321}
       UPLOADS_DIR: /app/uploads
     volumes:
       - uploads:/app/uploads
