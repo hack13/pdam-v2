@@ -1,5 +1,5 @@
 ---
-import BrandMark from './BrandMark.astro';
+import BrandMark from "./BrandMark.astro";
 
 interface Props {
   isAuthenticated: boolean;
@@ -8,66 +8,144 @@ interface Props {
 const { isAuthenticated } = Astro.props;
 ---
 
+<aside
+  class="relative z-10 border-b border-white/10 bg-[#52004b]/80 backdrop-blur-md"
+>
+  <div
+    class="mx-auto flex max-w-7xl items-start gap-3 px-6 py-3.5 sm:items-center"
+  >
+    <span
+      class="mt-0.5 shrink-0 font-mono font-bold text-[0.91rem] uppercase tracking-[0.13em] text-indigo-300 sm:mt-0"
+      >Disclosure</span
+    >
+    <p class="text-sm leading-6 text-zinc-400">
+      LLM-generated code was used to build parts of this application. Human
+      development was also involved to create much of the code. The LLM was used
+      to help with U.I. Design, Security Review of the code, and troubleshooting
+      bugs and issues that were found during development.
+    </p>
+  </div>
+</aside>
+
 <section class="relative overflow-hidden border-b border-white/10">
   <div class="pointer-events-none absolute inset-0" aria-hidden="true">
-    <div class="absolute -left-48 top-16 h-[34rem] w-[34rem] rounded-full bg-indigo-500/10 blur-3xl"></div>
-    <div class="absolute -right-64 top-40 h-[32rem] w-[32rem] rounded-full bg-cyan-500/[0.06] blur-3xl"></div>
+    <div
+      class="absolute -left-48 top-16 h-[34rem] w-[34rem] rounded-full bg-indigo-500/10 blur-3xl"
+    >
+    </div>
+    <div
+      class="absolute -right-64 top-40 h-[32rem] w-[32rem] rounded-full bg-cyan-500/[0.06] blur-3xl"
+    >
+    </div>
   </div>
 
-  <div class="relative mx-auto grid min-h-[calc(100vh-72px)] max-w-7xl items-center gap-10 px-6 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16 lg:py-24">
+  <div
+    class="relative mx-auto grid min-h-[calc(100vh-72px)] max-w-7xl items-center gap-10 px-6 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16 lg:py-24"
+  >
     <div class="max-w-3xl">
       <div class="brand-eyebrow">
         <span class="h-1.5 w-1.5 rounded-full bg-purple-400"></span>
         Your personal asset library
       </div>
 
-      <h1 class="mt-6 text-[clamp(3.35rem,7vw,6.9rem)] font-semibold leading-[0.92] tracking-[-0.065em] text-white">
+      <h1
+        class="mt-6 text-[clamp(3.35rem,7vw,6.9rem)] font-semibold leading-[0.92] tracking-[-0.065em] text-white"
+      >
         Your assets.<br />
         <span class="brand-gradient-text">Always cached.</span>
       </h1>
 
       <p class="mt-7 max-w-2xl text-lg leading-8 text-zinc-400 md:text-xl">
-        Bring scattered purchases, project files, versions, and licenses into one organized library, then keep every copy secure and in sync.
+        Bring scattered purchases, project files, versions, and licenses into
+        one organized library, then keep every copy secure and in sync.
       </p>
 
       <div class="mt-9 flex flex-col gap-3 sm:flex-row">
-        {isAuthenticated ? (
-          <a href="/library" class="btn-primary">Open your library</a>
-        ) : (
-          <>
-            <a href="/signup" class="btn-primary">Organize your assets</a>
-            <a href="#workflow" class="btn-secondary">See the workflow</a>
-          </>
-        )}
+        {
+          isAuthenticated ? (
+            <a href="/library" class="btn-primary">
+              Open your library
+            </a>
+          ) : (
+            <>
+              <a href="/signup" class="btn-primary">
+                Organize your assets
+              </a>
+              <a href="#workflow" class="btn-secondary">
+                See the workflow
+              </a>
+            </>
+          )
+        }
       </div>
 
-      <dl class="mt-12 grid max-w-2xl grid-cols-3 divide-x divide-white/10 border-y border-white/10 py-5">
+      <dl
+        class="mt-12 grid max-w-2xl grid-cols-3 divide-x divide-white/10 border-y border-white/10 py-5"
+      >
         <div class="pr-4">
-          <dt class="font-mono text-[0.65rem] uppercase tracking-[0.13em] text-zinc-500">Library</dt>
+          <dt
+            class="font-mono text-[0.65rem] uppercase tracking-[0.13em] text-zinc-500"
+          >
+            Library
+          </dt>
           <dd class="mt-1 text-sm font-medium text-zinc-200">One record</dd>
         </div>
         <div class="px-4 sm:px-6">
-          <dt class="font-mono text-[0.65rem] uppercase tracking-[0.13em] text-zinc-500">Ownership</dt>
+          <dt
+            class="font-mono text-[0.65rem] uppercase tracking-[0.13em] text-zinc-500"
+          >
+            Ownership
+          </dt>
           <dd class="mt-1 text-sm font-medium text-zinc-200">Traceable</dd>
         </div>
         <div class="pl-4 sm:pl-6">
-          <dt class="font-mono text-[0.65rem] uppercase tracking-[0.13em] text-zinc-500">Backups</dt>
+          <dt
+            class="font-mono text-[0.65rem] uppercase tracking-[0.13em] text-zinc-500"
+          >
+            Backups
+          </dt>
           <dd class="mt-1 text-sm font-medium text-zinc-200">Ready to sync</dd>
         </div>
       </dl>
     </div>
 
-    <div class="relative mx-auto grid min-h-[430px] w-full max-w-[540px] place-items-center lg:min-h-[590px]" aria-label="TailCache crystal-tail brand mark">
-      <div class="absolute h-[78%] w-[78%] rounded-full bg-indigo-500/25 blur-[74px]" aria-hidden="true"></div>
-      <BrandMark class="relative z-10 h-auto w-[78%] max-w-[440px] object-contain drop-shadow-[0_28px_46px_rgba(95,56,238,0.28)]" alt="TailCache curled crystal-tail mark" />
-
-      <div class="absolute left-0 top-[22%] z-20 rounded-xl border border-white/10 bg-[#121722]/90 px-3 py-2 shadow-xl backdrop-blur-md sm:left-4">
-        <p class="font-mono text-[0.58rem] uppercase tracking-[0.12em] text-zinc-500">Creator</p>
-        <p class="mt-0.5 text-xs font-medium text-zinc-200">5 linked purchases</p>
+    <div
+      class="relative mx-auto grid min-h-[430px] w-full max-w-[540px] place-items-center lg:min-h-[590px]"
+      aria-label="TailCache crystal-tail brand mark"
+    >
+      <div
+        class="absolute h-[78%] w-[78%] rounded-full bg-indigo-500/25 blur-[74px]"
+        aria-hidden="true"
+      >
       </div>
-      <div class="absolute bottom-[16%] right-0 z-20 rounded-xl border border-blue-500/20 bg-[#121722]/90 px-3 py-2 shadow-xl backdrop-blur-md sm:right-3">
-        <p class="font-mono text-[0.58rem] uppercase tracking-[0.12em] text-blue-400">Sync</p>
-        <p class="mt-0.5 flex items-center gap-2 text-xs font-medium text-zinc-200">
+      <BrandMark
+        class="relative z-10 h-auto w-[78%] max-w-[440px] object-contain drop-shadow-[0_28px_46px_rgba(95,56,238,0.28)]"
+        alt="TailCache curled crystal-tail mark"
+      />
+
+      <div
+        class="absolute left-0 top-[22%] z-20 rounded-xl border border-white/10 bg-[#121722]/90 px-3 py-2 shadow-xl backdrop-blur-md sm:left-4"
+      >
+        <p
+          class="font-mono text-[0.58rem] uppercase tracking-[0.12em] text-zinc-500"
+        >
+          Creator
+        </p>
+        <p class="mt-0.5 text-xs font-medium text-zinc-200">
+          5 linked purchases
+        </p>
+      </div>
+      <div
+        class="absolute bottom-[16%] right-0 z-20 rounded-xl border border-blue-500/20 bg-[#121722]/90 px-3 py-2 shadow-xl backdrop-blur-md sm:right-3"
+      >
+        <p
+          class="font-mono text-[0.58rem] uppercase tracking-[0.12em] text-blue-400"
+        >
+          Sync
+        </p>
+        <p
+          class="mt-0.5 flex items-center gap-2 text-xs font-medium text-zinc-200"
+        >
           <span class="h-1.5 w-1.5 rounded-full bg-cyan-500"></span>
           3 copies healthy
         </p>
@@ -76,108 +154,287 @@ const { isAuthenticated } = Astro.props;
   </div>
 </section>
 
-<section id="features" class="scroll-mt-24 border-b border-white/10 py-24 sm:py-28">
+<section
+  id="features"
+  class="scroll-mt-24 border-b border-white/10 py-24 sm:py-28"
+>
   <div class="mx-auto max-w-7xl px-6">
     <div class="max-w-3xl">
-      <p class="text-xs font-bold uppercase tracking-[0.16em] text-indigo-300">Built around the asset</p>
-      <h2 class="mt-4 text-4xl font-semibold leading-tight text-white sm:text-5xl">Your library, treated like a system.</h2>
-      <p class="mt-5 max-w-2xl text-lg leading-8 text-zinc-400">Collect purchases from the stores you already use, link them to gallery listings, and back everything up to storage you control.</p>
+      <p class="text-xs font-bold uppercase tracking-[0.16em] text-indigo-300">
+        Built around the asset
+      </p>
+      <h2
+        class="mt-4 text-4xl font-semibold leading-tight text-white sm:text-5xl"
+      >
+        Your library, treated like a system.
+      </h2>
+      <p class="mt-5 max-w-2xl text-lg leading-8 text-zinc-400">
+        Collect purchases from the stores you already use, link them to gallery
+        listings, and back everything up to storage you control.
+      </p>
     </div>
 
     <div class="mt-12 grid gap-5 lg:grid-cols-3">
       <article class="brand-panel rounded-[22px] p-7">
-        <div class="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-zinc-200">
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" />
-            <path stroke-linecap="round" stroke-linejoin="round" d="m4.4 7.7 7.6 4.4 7.6-4.4M12 12.1V21" />
+        <div
+          class="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-zinc-200"
+        >
+          <svg
+            class="h-5 w-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.75"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"></path>
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="m4.4 7.7 7.6 4.4 7.6-4.4M12 12.1V21"></path>
           </svg>
         </div>
-        <h3 class="mt-6 text-xl font-semibold text-white">All your marketplace assets</h3>
-        <p class="mt-3 text-sm leading-6 text-zinc-400">Bring purchases from sites like Jinxxy, Gumroad, and more into one library, and link them to matching creations in the gallery.</p>
+        <h3 class="mt-6 text-xl font-semibold text-white">
+          All your marketplace assets
+        </h3>
+        <p class="mt-3 text-sm leading-6 text-zinc-400">
+          Bring purchases from sites like Jinxxy, Gumroad, and more into one
+          library, and link them to matching creations in the gallery.
+        </p>
       </article>
 
       <article class="brand-panel rounded-[22px] p-7">
-        <div class="flex h-11 w-11 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-500/[0.07] text-blue-400">
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h10a4 4 0 0 1 4 4v1M17 17H7a4 4 0 0 1-4-4v-1" />
-            <path stroke-linecap="round" stroke-linejoin="round" d="m17 4 3 3-3 3M7 20l-3-3 3-3" />
+        <div
+          class="flex h-11 w-11 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-500/[0.07] text-blue-400"
+        >
+          <svg
+            class="h-5 w-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.75"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M7 7h10a4 4 0 0 1 4 4v1M17 17H7a4 4 0 0 1-4-4v-1"></path>
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="m17 4 3 3-3 3M7 20l-3-3 3-3"></path>
           </svg>
         </div>
-        <h3 class="mt-6 text-xl font-semibold text-white">Backup to your own storage</h3>
-        <p class="mt-3 text-sm leading-6 text-zinc-400">Keep a backup of your library on storage options you control, like S3, WebDAV, Google Drive, and more.</p>
+        <h3 class="mt-6 text-xl font-semibold text-white">
+          Backup to your own storage
+        </h3>
+        <p class="mt-3 text-sm leading-6 text-zinc-400">
+          Keep a backup of your library on storage options you control, like S3,
+          WebDAV, Google Drive, and more.
+        </p>
       </article>
 
       <article class="brand-panel rounded-[22px] p-7">
-        <div class="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-zinc-200">
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M7 12.5 10.2 16 17 8.5" />
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3.5 20 7v5c0 4.4-3.1 7.4-8 8.5C7.1 19.4 4 16.4 4 12V7l8-3.5Z" />
+        <div
+          class="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-zinc-200"
+        >
+          <svg
+            class="h-5 w-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.75"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M7 12.5 10.2 16 17 8.5"></path>
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 3.5 20 7v5c0 4.4-3.1 7.4-8 8.5C7.1 19.4 4 16.4 4 12V7l8-3.5Z"
+            ></path>
           </svg>
         </div>
         <h3 class="mt-6 text-xl font-semibold text-white">Creator gallery</h3>
-        <p class="mt-3 text-sm leading-6 text-zinc-400">Creators list their creations in the gallery, with clear links to where buyers can purchase each one.</p>
+        <p class="mt-3 text-sm leading-6 text-zinc-400">
+          Creators list their creations in the gallery, with clear links to
+          where buyers can purchase each one.
+        </p>
       </article>
     </div>
   </div>
 </section>
 
-<section id="workflow" class="scroll-mt-24 border-b border-white/10 py-24 sm:py-28">
-  <div class="mx-auto grid max-w-7xl items-center gap-14 px-6 lg:grid-cols-[0.82fr_1.18fr] lg:gap-20">
+<section
+  id="workflow"
+  class="scroll-mt-24 border-b border-white/10 py-24 sm:py-28"
+>
+  <div
+    class="mx-auto grid max-w-7xl items-center gap-14 px-6 lg:grid-cols-[0.82fr_1.18fr] lg:gap-20"
+  >
     <div>
-      <p class="text-xs font-bold uppercase tracking-[0.16em] text-indigo-300">A clear workflow</p>
-      <h2 class="mt-4 text-4xl font-semibold leading-tight text-white sm:text-5xl">From library to your own storage.</h2>
-      <p class="mt-5 text-lg leading-8 text-zinc-400">Connect a storage solution you control, then keep healthy backups flowing on your schedule.</p>
+      <p class="text-xs font-bold uppercase tracking-[0.16em] text-indigo-300">
+        A clear workflow
+      </p>
+      <h2
+        class="mt-4 text-4xl font-semibold leading-tight text-white sm:text-5xl"
+      >
+        From library to your own storage.
+      </h2>
+      <p class="mt-5 text-lg leading-8 text-zinc-400">
+        Connect a storage solution you control, then keep healthy backups
+        flowing on your schedule.
+      </p>
 
       <ol class="mt-9 space-y-7">
         <li class="grid grid-cols-[42px_1fr] gap-4">
-          <span class="flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-purple-500/25 bg-indigo-500/15 font-mono text-sm font-semibold text-indigo-300">1</span>
-          <div><h3 class="text-base font-semibold tracking-normal text-white">Capture</h3><p class="mt-1 text-sm leading-6 text-zinc-400">Add assets from marketplaces like Jinxxy and Gumroad, including licenses and files you rely on.</p></div>
+          <span
+            class="flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-purple-500/25 bg-indigo-500/15 font-mono text-sm font-semibold text-indigo-300"
+            >1</span
+          >
+          <div>
+            <h3 class="text-base font-semibold tracking-normal text-white">
+              Capture
+            </h3><p class="mt-1 text-sm leading-6 text-zinc-400">
+              Add assets from marketplaces like Jinxxy and Gumroad, including
+              licenses and files you rely on.
+            </p>
+          </div>
         </li>
         <li class="grid grid-cols-[42px_1fr] gap-4">
-          <span class="flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-blue-500/25 bg-blue-500/10 font-mono text-sm font-semibold text-blue-400">2</span>
-          <div><h3 class="text-base font-semibold tracking-normal text-white">Storage solution</h3><p class="mt-1 text-sm leading-6 text-zinc-400">Connect S3-compatible storage, WebDAV, Google Drive, or another destination you own.</p></div>
+          <span
+            class="flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-blue-500/25 bg-blue-500/10 font-mono text-sm font-semibold text-blue-400"
+            >2</span
+          >
+          <div>
+            <h3 class="text-base font-semibold tracking-normal text-white">
+              Storage solution
+            </h3><p class="mt-1 text-sm leading-6 text-zinc-400">
+              Connect S3-compatible storage, WebDAV, Google Drive, or another
+              destination you own.
+            </p>
+          </div>
         </li>
         <li class="grid grid-cols-[42px_1fr] gap-4">
-          <span class="flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-purple-500/25 bg-indigo-500/15 font-mono text-sm font-semibold text-indigo-300">3</span>
-          <div><h3 class="text-base font-semibold tracking-normal text-white">Sync</h3><p class="mt-1 text-sm leading-6 text-zinc-400">Run an immediate backup or schedule recurring copies, then review every sync.</p></div>
+          <span
+            class="flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-purple-500/25 bg-indigo-500/15 font-mono text-sm font-semibold text-indigo-300"
+            >3</span
+          >
+          <div>
+            <h3 class="text-base font-semibold tracking-normal text-white">
+              Sync
+            </h3><p class="mt-1 text-sm leading-6 text-zinc-400">
+              Run an immediate backup or schedule recurring copies, then review
+              every sync.
+            </p>
+          </div>
         </li>
       </ol>
     </div>
 
-    <div class="rounded-[24px] border border-white/10 bg-[#0d121c] p-3 shadow-2xl shadow-black/30 sm:p-5">
-      <div class="flex items-center justify-between border-b border-white/10 px-2 pb-4">
+    <div
+      class="rounded-[24px] border border-white/10 bg-[#0d121c] p-3 shadow-2xl shadow-black/30 sm:p-5"
+    >
+      <div
+        class="flex items-center justify-between border-b border-white/10 px-2 pb-4"
+      >
         <div class="flex items-center gap-2.5">
           <BrandMark class="h-8 w-7 object-contain" alt="" />
-          <span class="font-display text-sm font-bold tracking-[-0.035em] text-white">TailCache</span>
+          <span
+            class="font-display text-sm font-bold tracking-[-0.035em] text-white"
+            >TailCache</span
+          >
         </div>
-        <div class="flex items-center gap-2 font-mono text-[0.58rem] uppercase tracking-[0.12em] text-zinc-500">
+        <div
+          class="flex items-center gap-2 font-mono text-[0.58rem] uppercase tracking-[0.12em] text-zinc-500"
+        >
           <span class="h-1.5 w-1.5 rounded-full bg-cyan-500"></span> All synced
         </div>
       </div>
 
       <div class="grid grid-cols-1 gap-3 pt-4 sm:grid-cols-3">
-        <article class="overflow-hidden rounded-[14px] border border-white/[0.08] bg-[#121722] p-2.5">
-          <div class="flex aspect-[4/3] items-center justify-center rounded-[10px] bg-gradient-to-br from-indigo-950 to-indigo-500/30">
-            <svg class="h-16 w-16 text-indigo-300" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M11 48 25 30l8 9 7-8 13 17H11Z"/><path d="M18 48V18h28v30M25 24h.1"/><path d="M8 52h48"/></svg>
+        <article
+          class="overflow-hidden rounded-[14px] border border-white/[0.08] bg-[#121722] p-2.5"
+        >
+          <div
+            class="flex aspect-[4/3] items-center justify-center rounded-[10px] bg-gradient-to-br from-indigo-950 to-indigo-500/30"
+          >
+            <svg
+              class="h-16 w-16 text-indigo-300"
+              viewBox="0 0 64 64"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+              aria-hidden="true"
+              ><path d="M11 48 25 30l8 9 7-8 13 17H11Z"></path><path
+                d="M18 48V18h28v30M25 24h.1"></path><path d="M8 52h48"
+              ></path></svg
+            >
           </div>
-          <p class="mt-3 truncate text-xs font-medium text-zinc-200">Neon Loft</p>
-          <p class="mt-1 font-mono text-[0.58rem] text-zinc-500">environment · v3</p>
+          <p class="mt-3 truncate text-xs font-medium text-zinc-200">
+            Neon Loft
+          </p>
+          <p class="mt-1 font-mono text-[0.58rem] text-zinc-500">
+            environment · v3
+          </p>
         </article>
 
-        <article class="overflow-hidden rounded-[14px] border border-white/[0.08] bg-[#121722] p-2.5">
-          <div class="flex aspect-[4/3] items-center justify-center rounded-[10px] bg-gradient-to-br from-violet-950 to-purple-500/30">
-            <svg class="h-16 w-16 text-purple-300" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="25" cy="29" r="14"/><circle cx="40" cy="37" r="12"/><path d="M9 52h46M20 22c5 4 9 4 14 0M32 33c4 3 8 3 12 0"/></svg>
+        <article
+          class="overflow-hidden rounded-[14px] border border-white/[0.08] bg-[#121722] p-2.5"
+        >
+          <div
+            class="flex aspect-[4/3] items-center justify-center rounded-[10px] bg-gradient-to-br from-violet-950 to-purple-500/30"
+          >
+            <svg
+              class="h-16 w-16 text-purple-300"
+              viewBox="0 0 64 64"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+              aria-hidden="true"
+              ><circle cx="25" cy="29" r="14"></circle><circle
+                cx="40"
+                cy="37"
+                r="12"></circle><path
+                d="M9 52h46M20 22c5 4 9 4 14 0M32 33c4 3 8 3 12 0"></path></svg
+            >
           </div>
-          <p class="mt-3 truncate text-xs font-medium text-zinc-200">Prism Shaders</p>
-          <p class="mt-1 font-mono text-[0.58rem] text-zinc-500">materials · v2.4</p>
+          <p class="mt-3 truncate text-xs font-medium text-zinc-200">
+            Prism Shaders
+          </p>
+          <p class="mt-1 font-mono text-[0.58rem] text-zinc-500">
+            materials · v2.4
+          </p>
         </article>
 
-        <article class="overflow-hidden rounded-[14px] border border-white/[0.08] bg-[#121722] p-2.5 sm:block">
-          <div class="flex aspect-[4/3] items-center justify-center rounded-[10px] bg-gradient-to-br from-blue-950 to-cyan-500/25">
-            <svg class="h-16 w-16 text-blue-300" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="m32 11 19 11v21L32 54 13 43V22l19-11Z"/><path d="m13 22 19 11 19-11M32 33v21M22 17l19 11"/></svg>
+        <article
+          class="overflow-hidden rounded-[14px] border border-white/[0.08] bg-[#121722] p-2.5 sm:block"
+        >
+          <div
+            class="flex aspect-[4/3] items-center justify-center rounded-[10px] bg-gradient-to-br from-blue-950 to-cyan-500/25"
+          >
+            <svg
+              class="h-16 w-16 text-blue-300"
+              viewBox="0 0 64 64"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+              aria-hidden="true"
+              ><path d="m32 11 19 11v21L32 54 13 43V22l19-11Z"></path><path
+                d="m13 22 19 11 19-11M32 33v21M22 17l19 11"></path></svg
+            >
           </div>
-          <p class="mt-3 truncate text-xs font-medium text-zinc-200">Rig Toolkit</p>
-          <p class="mt-1 font-mono text-[0.58rem] text-zinc-500">tooling · v1.8</p>
+          <p class="mt-3 truncate text-xs font-medium text-zinc-200">
+            Rig Toolkit
+          </p>
+          <p class="mt-1 font-mono text-[0.58rem] text-zinc-500">
+            tooling · v1.8
+          </p>
         </article>
       </div>
     </div>
@@ -187,11 +444,23 @@ const { isAuthenticated } = Astro.props;
 <section class="py-24 sm:py-28">
   <div class="mx-auto max-w-5xl px-6 text-center">
     <div class="brand-panel rounded-[24px] px-6 py-14 sm:px-12 sm:py-16">
-      <p class="text-xs font-bold uppercase tracking-[0.16em] text-indigo-300">Private beta</p>
-      <h2 class="mx-auto mt-4 max-w-2xl text-4xl font-semibold leading-tight text-white sm:text-5xl">Make every asset easier to find, trust, and protect.</h2>
-      <p class="mx-auto mt-5 max-w-xl text-base leading-7 text-zinc-400">Create your account with an invite and start building one reliable record for your digital library.</p>
-      <a href={isAuthenticated ? '/library' : '/signup'} class="btn-primary mt-8">
-        {isAuthenticated ? 'Open your library' : 'Create your account'}
+      <p class="text-xs font-bold uppercase tracking-[0.16em] text-indigo-300">
+        Private beta
+      </p>
+      <h2
+        class="mx-auto mt-4 max-w-2xl text-4xl font-semibold leading-tight text-white sm:text-5xl"
+      >
+        Make every asset easier to find, trust, and protect.
+      </h2>
+      <p class="mx-auto mt-5 max-w-xl text-base leading-7 text-zinc-400">
+        Create your account with an invite and start building one reliable
+        record for your digital library.
+      </p>
+      <a
+        href={isAuthenticated ? "/library" : "/signup"}
+        class="btn-primary mt-8"
+      >
+        {isAuthenticated ? "Open your library" : "Create your account"}
       </a>
     </div>
   </div>
