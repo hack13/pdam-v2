@@ -25,6 +25,9 @@ function formatProgress(progress: UploadProgress): string {
   if (progress.phase === 'completing') {
     return 'Finalizing upload…';
   }
+  if (progress.phase === 'processing') {
+    return 'Processing upload…';
+  }
   return `Uploading… ${pct}% (${formatSize(progress.bytes)} / ${formatSize(progress.total)})`;
 }
 

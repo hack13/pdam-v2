@@ -1,5 +1,5 @@
 import { mkdirSync, existsSync, unlinkSync } from 'node:fs';
-import { open, readFile } from 'node:fs/promises';
+import { copyFile, mkdir, open, readFile } from 'node:fs/promises';
 import { isAbsolute, join, normalize, relative } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -63,6 +63,13 @@ export class LocalStorageProvider implements StorageProvider {
     if (existsSync(filePath)) {
       unlinkSync(filePath);
     }
+  }
+
+  async copy(sourceKey: string, destinationKey: string): Promise<void> {
+    const sourcePath = this.resolvePath(sourceKey);
+    const destinationPath = this.resolvePath(destinationKey);
+    await mkdir(destinationPath.substring(0, destinationPath.lastIndexOf('/')), { recursive: true });
+    await copyFile(sourcePath, destinationPath);
   }
 
   getPublicUrl(key: string): string {

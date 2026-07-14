@@ -1,12 +1,14 @@
 import { PgBoss } from 'pg-boss';
 import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '../db';
-import { syncRuns, userStorageConnections } from '../db/schema';
+import { pendingUploads, syncRuns, userStorageConnections } from '../db/schema';
 import { notifySyncRunChanged } from './sync-events';
 
 export const SYNC_QUEUE = 'pdam-sync-destination';
 export const SYNC_SCHEDULER_QUEUE = 'pdam-sync-scheduler';
+export const UPLOAD_PROMOTION_QUEUE = 'pdam-upload-promotion';
 export type SyncJobData = { runId: string; connectionId: string; userId: string };
+export type UploadPromotionJobData = { sessionId: string };
 
 let bossPromise: Promise<PgBoss> | null = null;
 
@@ -21,6 +23,7 @@ export async function getSyncBoss() {
     bossPromise = boss.start().then(async () => {
       await boss.createQueue(SYNC_QUEUE, { notify: true, retryLimit: 3, retryDelay: 30, retryBackoff: true, retryDelayMax: 3600, heartbeatSeconds: 60, expireInSeconds: 3600, deleteAfterSeconds: 30 * 86400 });
       await boss.createQueue(SYNC_SCHEDULER_QUEUE, { notify: true, retryLimit: 3, retryDelay: 30, retryBackoff: true, retryDelayMax: 300, heartbeatSeconds: 60, expireInSeconds: 300, deleteAfterSeconds: 7 * 86400 });
+      await boss.createQueue(UPLOAD_PROMOTION_QUEUE, { notify: true, retryLimit: 5, retryDelay: 15, retryBackoff: true, retryDelayMax: 900, heartbeatSeconds: 60, expireInSeconds: 3600, deleteAfterSeconds: 30 * 86400 });
       await boss.schedule(SYNC_SCHEDULER_QUEUE, '* * * * *', { type: 'due-syncs' }, {
         key: 'due-connections',
         tz: 'UTC',
@@ -34,6 +37,27 @@ export async function getSyncBoss() {
     });
   }
   return bossPromise;
+}
+
+/** Queue a verified staged object for durable promotion into content-addressed storage. */
+export async function enqueueUploadPromotion(sessionId: string) {
+  const session = await db.query.pendingUploads.findFirst({ where: eq(pendingUploads.id, sessionId) });
+  if (!session) throw new Error('Upload session not found');
+  if (session.promotionJobId) return session.promotionJobId;
+
+  const boss = await getSyncBoss();
+  const jobId = await boss.send(UPLOAD_PROMOTION_QUEUE, { sessionId } satisfies UploadPromotionJobData, {
+    retryLimit: 5,
+    retryDelay: 15,
+    retryBackoff: true,
+    retryDelayMax: 900,
+    heartbeatSeconds: 60,
+    expireInSeconds: 3600,
+    group: { id: session.userId },
+  });
+  if (!jobId) throw new Error('Upload promotion job was not queued');
+  await db.update(pendingUploads).set({ promotionJobId: jobId }).where(eq(pendingUploads.id, sessionId));
+  return jobId;
 }
 
 export async function enqueueConnectionSync(connectionId: string, userId: string) {

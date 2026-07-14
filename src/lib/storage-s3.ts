@@ -4,6 +4,7 @@ import {
   GetObjectCommand,
   HeadObjectCommand,
   DeleteObjectCommand,
+  CopyObjectCommand,
   CreateMultipartUploadCommand,
   UploadPartCommand,
   CompleteMultipartUploadCommand,
@@ -108,6 +109,14 @@ export class S3StorageProvider implements StorageProvider {
         Key: key,
       }),
     );
+  }
+
+  async copy(sourceKey: string, destinationKey: string): Promise<void> {
+    await this.client.send(new CopyObjectCommand({
+      Bucket: this.bucket,
+      Key: destinationKey,
+      CopySource: `${this.bucket}/${encodeURIComponent(sourceKey).replace(/%2F/g, '/')}`,
+    }));
   }
 
   getPublicUrl(key: string): string {

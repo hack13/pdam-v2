@@ -4,14 +4,13 @@ import { db } from '../../../../../../../../../db';
 import { pendingUploads } from '../../../../../../../../../db/schema';
 import { requireAuth, json, jsonError } from '../../../../../../../../../lib/api-helpers';
 import {
-  finalizeBlobFromStorage,
-  findBlobBySha256,
   isPendingUploadKey,
   verifySha256FromStorage,
 } from '../../../../../../../../../lib/file-pipeline';
 import { storage } from '../../../../../../../../../lib/storage';
 import { computePartCount, getMpuPartSize } from '../../../../../../../../../lib/upload-config';
-import { linkBlobToVersion, readJsonBody, validateVersionAccess } from '../../../../../../../../../lib/upload-helpers';
+import { readJsonBody, validateVersionAccess } from '../../../../../../../../../lib/upload-helpers';
+import { enqueueUploadPromotion } from '../../../../../../../../../lib/sync-queue';
 
 interface CompleteBody {
   parts?: { partNumber: number; etag: string }[];
@@ -43,8 +42,8 @@ export const POST: APIRoute = async (context) => {
     return jsonError('Upload session not found', 404);
   }
 
-  if (session.status === 'completed') {
-    return jsonError('Upload session is already completed', 409);
+  if (session.status === 'completed' || session.status === 'queued' || session.status === 'promoting' || session.status === 'retrying') {
+    return json({ success: true, status: session.status, jobId: session.promotionJobId }, 202);
   }
 
   if (session.status !== 'pending') {
@@ -123,65 +122,14 @@ export const POST: APIRoute = async (context) => {
       return jsonError('Uploaded file does not match the declared hash and size', 422);
     }
 
-    // A matching blob can now be reused: the caller has demonstrated
-    // possession by uploading and server-verifying the exact bytes.
-    const existingBlob = await findBlobBySha256(session.sha256);
-    if (existingBlob) {
-      await storage.delete(session.storageKey).catch(() => {});
-      const linked = await linkBlobToVersion(
-        auth.user.id,
-        versionId,
-        existingBlob,
-        session.fileSize,
-        false,
-      );
-      await db.update(pendingUploads)
-        .set({ status: 'completed' })
-        .where(eq(pendingUploads.id, session.id));
-      return json({
-        success: true,
-        deduplicated: true,
-        file: { ...existingBlob, userAssetFileId: linked.id },
-      });
-    }
-
-    const result = await finalizeBlobFromStorage(
-      session.sha256,
-      session.fileName,
-      session.mimeType,
-      session.fileSize,
-      session.storageKey,
-    );
-
-    // Another verified upload may have completed between the lookup above and
-    // the insert. Its staging object is no longer needed in that case.
-    if (result.deduplicated) {
-      await storage.delete(session.storageKey).catch(() => {});
-    }
-
-    const linked = await linkBlobToVersion(
-      auth.user.id,
-      versionId,
-      result.blob,
-      session.fileSize,
-      result.isNew,
-    );
-
     await db.update(pendingUploads)
-      .set({ status: 'completed' })
+      .set({ status: 'queued', errorSummary: null })
       .where(eq(pendingUploads.id, session.id));
-
-    return json({
-      success: true,
-      deduplicated: result.deduplicated,
-      file: {
-        ...result.blob,
-        userAssetFileId: linked.id,
-      },
-    });
+    const jobId = await enqueueUploadPromotion(session.id);
+    return json({ success: true, status: 'queued', jobId }, 202);
   } catch (err) {
     await db.update(pendingUploads)
-      .set({ status: 'pending' })
+      .set({ status: 'retrying', errorSummary: err instanceof Error ? err.message : 'Failed to queue upload promotion' })
       .where(eq(pendingUploads.id, session.id));
 
     const message = err instanceof Error ? err.message : 'Failed to complete upload';

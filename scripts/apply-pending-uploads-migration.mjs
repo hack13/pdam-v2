@@ -45,6 +45,12 @@ try {
   `;
 
   await sql`
+    ALTER TABLE "pending_uploads"
+      ADD COLUMN IF NOT EXISTS "promotion_job_id" text,
+      ADD COLUMN IF NOT EXISTS "error_summary" text
+  `;
+
+  await sql`
     DO $$
     BEGIN
       IF NOT EXISTS (

@@ -12,6 +12,7 @@ async function getSessionForUser(
   userId: string,
   productId: string,
   versionId: string,
+  requirePending = true,
 ) {
   const access = await validateVersionAccess(userId, productId, versionId);
   if (access instanceof Response) return access;
@@ -28,11 +29,11 @@ async function getSessionForUser(
     return jsonError('Upload session not found', 404);
   }
 
-  if (session.status !== 'pending') {
+  if (requirePending && session.status !== 'pending') {
     return jsonError(`Upload session is ${session.status}`, 409);
   }
 
-  if (session.expiresAt < new Date()) {
+  if (requirePending && session.expiresAt < new Date()) {
     return jsonError('Upload session has expired', 410);
   }
 
@@ -50,7 +51,7 @@ export const GET: APIRoute = async (context) => {
     return jsonError('Asset ID, version ID, and session ID required');
   }
 
-  const session = await getSessionForUser(sessionId, auth.user.id, productId, versionId);
+  const session = await getSessionForUser(sessionId, auth.user.id, productId, versionId, false);
   if (session instanceof Response) return session;
 
   const partSize = getMpuPartSize();
@@ -85,6 +86,7 @@ export const GET: APIRoute = async (context) => {
     completedParts,
     expiresAt: session.expiresAt.toISOString(),
     status: session.status,
+    errorSummary: session.errorSummary,
   });
 };
 

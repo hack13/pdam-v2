@@ -8,7 +8,9 @@ Start the worker from the project directory:
 pnpm sync:worker
 ```
 
-The worker loads `.env`, connects to `DATABASE_URL`, creates/maintains the `pgboss` schema, and listens on the `pdam-sync-destination` queue. Set `SYNC_WORKER_CONCURRENCY` to control concurrent destination jobs; the default is `2`.
+The worker loads `.env`, connects to `DATABASE_URL`, creates/maintains the `pgboss` schema, and listens on both the `pdam-sync-destination` and `pdam-upload-promotion` queues. Set `SYNC_WORKER_CONCURRENCY` to control concurrent jobs; the default is `2`.
+
+Large asset uploads first land in `pending-uploads/<session-id>`. After the API verifies their hash and size, it queues an upload-promotion job. The worker copies the object to its content-addressed `blobs/` key, updates the database, links the file to the asset version, and deletes the staging object. Run `pnpm uploads:enqueue-promotions` once after deploying this change to promote already-completed staged uploads.
 
 The worker also owns a pg-boss schedule named `pdam-sync-scheduler` that emits one scheduler tick per minute. The tick checks each enabled destination against its user-configured daily or weekly schedule and queues only destinations that are due. No external cron job or HTTP scheduler call is required.
 

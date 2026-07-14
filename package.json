@@ -28,6 +28,7 @@
     "db:apply-feedback": "node scripts/apply-feedback-migration.mjs",
     "db:hash-ownership-verification-license-keys": "node scripts/hash-ownership-verification-license-keys.mjs",
     "uploads:cleanup": "node scripts/cleanup-pending-uploads.mjs",
+    "uploads:enqueue-promotions": "tsx scripts/enqueue-pending-upload-promotions.ts",
     "db:studio": "drizzle-kit studio",
     "sync:worker": "tsx scripts/sync-worker.ts"
   },

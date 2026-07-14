@@ -19,6 +19,8 @@ export const pendingUploads = pgTable('pending_uploads', {
   s3UploadId: text('s3_upload_id').notNull(),
   completedParts: jsonb('completed_parts').$type<CompletedPart[]>().notNull().default([]),
   status: text('status').notNull().default('pending'),
+  promotionJobId: text('promotion_job_id'),
+  errorSummary: text('error_summary'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   expiresAt: timestamp('expires_at').notNull(),
 });

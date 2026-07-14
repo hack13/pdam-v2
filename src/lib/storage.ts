@@ -8,6 +8,8 @@ export interface MultipartPart {
 
 export interface StorageProvider {
   put(key: string, data: Buffer | Uint8Array): Promise<string>;
+  /** Copy an already-stored object without downloading it through the app. */
+  copy(sourceKey: string, destinationKey: string): Promise<void>;
   get(key: string): Promise<Buffer>;
   delete(key: string): Promise<void>;
   getPublicUrl(key: string): string;

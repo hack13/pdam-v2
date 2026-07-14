@@ -106,6 +106,13 @@
       "when": 1784030400007,
       "tag": "0014_creator_applications",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1784030400008,
+      "tag": "0015_platform_marketplaces",
+      "breakpoints": true
     }
   ]
 }

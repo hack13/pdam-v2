@@ -1,15 +1,31 @@
 import 'dotenv/config';
 import { eq } from 'drizzle-orm';
-import { getSyncBoss, SYNC_QUEUE, SYNC_SCHEDULER_QUEUE, type SyncJobData } from '../src/lib/sync-queue';
+import { getSyncBoss, SYNC_QUEUE, SYNC_SCHEDULER_QUEUE, UPLOAD_PROMOTION_QUEUE, type SyncJobData, type UploadPromotionJobData } from '../src/lib/sync-queue';
 import { db } from '../src/db';
 import { syncRuns } from '../src/db/schema';
 import { runSync } from '../src/lib/sync-service';
 import { enqueueDueScheduledConnections } from '../src/lib/sync-scheduler';
 import { notifySyncRunChanged } from '../src/lib/sync-events';
+import { promotePendingUpload } from '../src/lib/upload-promotion-service';
+import { pendingUploads } from '../src/db/schema';
 
 const boss = await getSyncBoss();
 const concurrency = Math.max(1, Number(process.env.SYNC_WORKER_CONCURRENCY ?? 2));
-console.info('[sync-worker] started', { queues: [SYNC_QUEUE, SYNC_SCHEDULER_QUEUE], concurrency });
+console.info('[sync-worker] started', { queues: [SYNC_QUEUE, SYNC_SCHEDULER_QUEUE, UPLOAD_PROMOTION_QUEUE], concurrency });
+
+await boss.work(UPLOAD_PROMOTION_QUEUE, { includeMetadata: true, localConcurrency: concurrency, groupConcurrency: 1, pollingIntervalSeconds: 2 }, async ([job]) => {
+  const data = job.data as UploadPromotionJobData;
+  try {
+    return await promotePendingUpload(data.sessionId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Upload promotion failed';
+    const exhausted = job.retryCount >= job.retryLimit;
+    await db.update(pendingUploads)
+      .set({ status: exhausted ? 'failed' : 'retrying', errorSummary: message })
+      .where(eq(pendingUploads.id, data.sessionId));
+    throw error;
+  }
+});
 
 await boss.work(SYNC_SCHEDULER_QUEUE, { includeMetadata: true, localConcurrency: 1, groupConcurrency: 1, pollingIntervalSeconds: 2 }, async ([job]) => {
   const results = await enqueueDueScheduledConnections(new Date(), 500);

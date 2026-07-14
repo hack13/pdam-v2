@@ -1,7 +1,7 @@
 import { createSHA256 } from 'hash-wasm';
 
 export interface UploadProgress {
-  phase: 'hashing' | 'uploading' | 'completing';
+  phase: 'hashing' | 'uploading' | 'completing' | 'processing';
   bytes: number;
   total: number;
 }
@@ -242,9 +242,22 @@ export async function uploadFileViaMultipart(params: {
     throw new Error((data as { error?: string }).error ?? 'Failed to complete upload');
   }
 
-  const completeData = await completeResponse.json() as { file: UploadedFileResult };
+  const completeData = await completeResponse.json() as { file?: UploadedFileResult };
+  if (!completeData.file) {
+    for (;;) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const statusResponse = await fetch(`${base}/${sessionId}`);
+      if (!statusResponse.ok) throw new Error('Could not check upload processing status');
+      const status = await statusResponse.json() as { status?: string; errorSummary?: string };
+      if (status.status === 'completed') break;
+      if (status.status === 'failed') throw new Error(status.errorSummary ?? 'Upload processing failed');
+      onProgress?.({ phase: 'processing', bytes: file.size, total: file.size });
+    }
+  }
   sessionStorage.removeItem(sessionStorageKey(productId, versionId, sha256));
-  return completeData.file;
+  // Staged multipart uploads are promoted asynchronously by the worker.
+  // The caller only needs completion to be accepted, not a blob record yet.
+  return completeData.file as UploadedFileResult;
 }
 
 export async function uploadFileLegacy(params: {
