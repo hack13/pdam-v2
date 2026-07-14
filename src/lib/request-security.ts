@@ -11,8 +11,12 @@ function hasApiKey(context: APIContext): boolean {
 }
 
 function expectedOrigin(context: APIContext): string {
-  const configured = process.env.BETTER_AUTH_URL?.replace(/\/$/, '');
-  return configured || new URL(context.request.url).origin;
+  // Astro builds this URL from the request host and, when configured in
+  // `security.allowedDomains`, trusted X-Forwarded-* headers. This keeps the
+  // origin check aligned with the browser-facing URL when TLS terminates at a
+  // reverse proxy instead of relying on a separately configured environment
+  // variable that can drift from it.
+  return new URL(context.request.url).origin;
 }
 
 /**
