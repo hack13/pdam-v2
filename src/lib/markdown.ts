@@ -65,7 +65,13 @@ export function renderMarkdown(source: string): string {
 
   configureSanitizerHooks();
 
-  const rawHtml = marked.parse(trimmed, { async: false }) as string;
+  let rawHtml: string;
+  
+  if (trimmed.startsWith('<')) {
+    rawHtml = trimmed;
+  } else {
+    rawHtml = marked.parse(trimmed, { async: false }) as string;
+  }
 
   return DOMPurify.sanitize(rawHtml, {
     ALLOWED_TAGS,

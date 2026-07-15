@@ -1,6 +1,8 @@
-import { useState, useEffect, type FormEvent, type KeyboardEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { ThumbnailPicker } from './ThumbnailPicker';
 import { MultiCreatorAutocomplete } from './MultiCreatorAutocomplete';
+import { QuillEditor } from './QuillEditor';
+import { TagInput } from './TagInput';
 
 interface MarketplaceSource {
   id: string;
@@ -19,7 +21,6 @@ export function AssetCreateForm() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
   const [selectedCreators, setSelectedCreators] = useState<CreatorEntry[]>([]);
   const [licenseKey, setLicenseKey] = useState('');
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
@@ -39,6 +40,7 @@ export function AssetCreateForm() {
     setSelectedCreators(newCreators);
   }
 
+
   useEffect(() => {
     fetch('/api/marketplace-sources')
       .then((res) => res.json())
@@ -50,28 +52,6 @@ export function AssetCreateForm() {
     setThumbnailFile(file);
     if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
     setThumbnailPreview(file ? URL.createObjectURL(file) : null);
-  }
-
-  function addTag(value: string) {
-    const trimmed = value.trim().toLowerCase();
-    if (!trimmed || tags.includes(trimmed)) return;
-    setTags([...tags, trimmed]);
-    setTagInput('');
-  }
-
-  function removeTag(tag: string) {
-    setTags(tags.filter((t) => t !== tag));
-  }
-
-  function handleTagKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
-      e.preventDefault();
-      const parts = tagInput.split(',');
-      for (const part of parts) addTag(part);
-    }
-    if (e.key === 'Backspace' && !tagInput && tags.length > 0) {
-      removeTag(tags[tags.length - 1]);
-    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -163,17 +143,15 @@ export function AssetCreateForm() {
         <label htmlFor="description" className="mb-1.5 block text-sm font-medium text-zinc-300">
           Description <span className="text-zinc-600">(optional)</span>
         </label>
-        <textarea
-          id="description"
-          rows={4}
+        <QuillEditor
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="field-control resize-none"
+          onChange={setDescription}
+          disabled={submitting}
           placeholder="Describe your asset..."
-          maxLength={10000}
+          className="w-full"
         />
         <p className="mt-1 text-xs text-zinc-600">
-          Markdown supported. Images can be added after creating the asset.
+          Rich text editor. Images can be added after creating the asset.
         </p>
       </div>
 
@@ -181,36 +159,16 @@ export function AssetCreateForm() {
         <label htmlFor="tagInput" className="mb-1.5 block text-sm font-medium text-zinc-300">
           Tags <span className="text-zinc-600">(press Enter or comma to add)</span>
         </label>
-        <div className="flex min-h-[46px] flex-wrap items-center gap-1.5 rounded-xl border border-white/10 bg-black/20 px-3 py-2 transition-colors focus-within:border-indigo-400/60 focus-within:bg-black/30">
-          {tags.map((tag) => (
-            <span
-              key={tag}
-              className="inline-flex items-center gap-1 rounded-md bg-indigo-500/20 px-2 py-0.5 text-xs text-indigo-300"
-            >
-              {tag}
-              <button
-                type="button"
-                onClick={() => removeTag(tag)}
-                className="ml-0.5 text-indigo-400 hover:text-white"
-                aria-label={`Remove ${tag}`}
-              >
-                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
-            </span>
-          ))}
-          <input
-            id="tagInput"
-            type="text"
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={handleTagKeyDown}
-            onBlur={() => tagInput.trim() && addTag(tagInput)}
-            className="min-w-[100px] flex-1 bg-transparent py-0.5 text-sm text-white placeholder-zinc-500 outline-none"
-            placeholder={tags.length === 0 ? 'vrchat, avatar, unity...' : ''}
-          />
-        </div>
+        <TagInput
+          id="tagInput"
+          tags={tags}
+          onChange={setTags}
+          disabled={submitting}
+          placeholder="vrchat, avatar, unity..."
+        />
+        <p className="mt-1 text-xs text-zinc-600">
+          Suggestions appear from tags you have used before
+        </p>
       </div>
 
       <div>

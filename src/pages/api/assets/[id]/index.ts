@@ -162,6 +162,7 @@ export const PUT: APIRoute = async (context) => {
     licenseKey?: string;
     marketplaceSourceId?: string;
     productUrl?: string;
+    removeThumbnail?: boolean;
     creators?: Array<{ id?: string; name: string }>;
     creatorId?: string;
     creatorName?: string;
@@ -202,6 +203,11 @@ export const PUT: APIRoute = async (context) => {
 
   if (body.productUrl !== undefined) {
     updates.productUrl = body.productUrl.trim() || null;
+  }
+
+  if (body.removeThumbnail === true) {
+    updates.thumbnailFileThumbnailId = null;
+    updates.featuredThumbnailKey = null;
   }
 
   if (body.creators !== undefined) {

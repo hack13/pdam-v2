@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "quill/dist/quill.snow.css";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -293,6 +294,165 @@
   .markdown-content img {
     @apply my-4 max-w-full rounded-lg border border-white/10;
   }
+
+}
+
+/* Quill's Snow theme is unlayered, so these intentional final overrides must be too. */
+.quill-editor .ql-toolbar.ql-snow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 0;
+  border-radius: 0.75rem 0.75rem 0 0;
+  background: rgba(8, 12, 20, 0.74);
+}
+
+.quill-editor .ql-toolbar .ql-formats {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 0.125rem;
+  padding-right: 0.25rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.quill-editor .ql-toolbar .ql-formats:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+
+.quill-editor .ql-container.ql-snow {
+  min-height: 9.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0 0 0.75rem 0.75rem;
+  background: rgba(0, 0, 0, 0.2);
+  color: #f8fafc;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.625;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+}
+
+.quill-editor:hover .ql-container.ql-snow {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.quill-editor:focus-within .ql-toolbar.ql-snow,
+.quill-editor:focus-within .ql-container.ql-snow {
+  border-color: rgba(156, 114, 245, 0.62);
+}
+
+.quill-editor:focus-within .ql-container.ql-snow {
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: 0 12px 28px -22px rgba(126, 63, 242, 0.85);
+}
+
+.quill-editor .ql-editor {
+  min-height: 9.5rem;
+  padding: 0.75rem 1rem;
+}
+
+.quill-editor .ql-editor.ql-blank::before {
+  left: 1rem;
+  right: 1rem;
+  color: #667085;
+  font-style: normal;
+}
+
+.quill-editor .ql-toolbar.ql-snow .ql-fill,
+.quill-editor .ql-toolbar.ql-snow .ql-stroke.ql-fill {
+  fill: #c8cfda;
+}
+
+.quill-editor .ql-toolbar.ql-snow .ql-stroke {
+  stroke: #c8cfda;
+}
+
+.quill-editor .ql-toolbar.ql-snow button:hover .ql-fill,
+.quill-editor .ql-toolbar.ql-snow button.ql-active .ql-fill,
+.quill-editor .ql-toolbar.ql-snow button:hover .ql-stroke.ql-fill,
+.quill-editor .ql-toolbar.ql-snow button.ql-active .ql-stroke.ql-fill {
+  fill: #c4a8fb;
+}
+
+.quill-editor .ql-toolbar.ql-snow button:hover .ql-stroke,
+.quill-editor .ql-toolbar.ql-snow button.ql-active .ql-stroke {
+  stroke: #c4a8fb;
+}
+
+.quill-editor .ql-toolbar.ql-snow .ql-picker {
+  color: #c8cfda;
+}
+
+.quill-editor .ql-toolbar.ql-snow .ql-picker-label:hover,
+.quill-editor .ql-toolbar.ql-snow .ql-picker-label.ql-active,
+.quill-editor .ql-toolbar.ql-snow .ql-picker-item:hover,
+.quill-editor .ql-toolbar.ql-snow .ql-picker-item.ql-selected {
+  color: #c4a8fb;
+}
+
+.quill-editor .ql-toolbar.ql-snow .ql-picker-options {
+  padding: 0.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  background: #121722;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+.quill-editor .ql-toolbar.ql-snow .ql-picker-item {
+  border-radius: 0.25rem;
+  color: #c8cfda;
+}
+
+.quill-editor .ql-toolbar.ql-snow .ql-picker-item:hover {
+  background: rgba(126, 63, 242, 0.16);
+}
+
+.quill-editor .ql-editor img {
+  max-width: 100%;
+  margin-block: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+}
+
+.quill-editor .ql-editor h1,
+.quill-editor .ql-editor h2,
+.quill-editor .ql-editor h3 {
+  color: #fff;
+  font-weight: 600;
+}
+
+.quill-editor .ql-editor h1 { margin: 0.75rem 0 0.375rem; font-size: 1.25rem; }
+.quill-editor .ql-editor h2 { margin: 0.625rem 0 0.25rem; font-size: 1.125rem; }
+.quill-editor .ql-editor h3 { margin: 0.5rem 0 0.25rem; font-size: 1rem; }
+.quill-editor .ql-editor p { margin: 0.25rem 0; }
+
+.quill-editor .ql-editor a {
+  color: #9c72f5;
+  text-decoration: underline;
+  text-decoration-color: rgba(156, 114, 245, 0.4);
+  text-underline-offset: 2px;
+}
+
+.quill-editor .ql-editor ul,
+.quill-editor .ql-editor ol {
+  padding-left: 1.25rem;
+}
+
+.quill-editor .ql-editor ul { list-style-type: disc; }
+.quill-editor .ql-editor ol { list-style-type: decimal; }
+.quill-editor .ql-editor li { margin-block: 0.25rem; }
+.quill-editor .ql-editor strong { color: #e2e8f0; font-weight: 600; }
+
+.quill-editor .ql-editor code {
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

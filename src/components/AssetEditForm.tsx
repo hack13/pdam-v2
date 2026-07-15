@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ThumbnailPicker } from './ThumbnailPicker';
 import { MultiCreatorAutocomplete } from './MultiCreatorAutocomplete';
 import { DescriptionField } from './DescriptionField';
+import { TagInput } from './TagInput';
 
 interface MarketplaceSource {
   id: string;
@@ -51,6 +52,7 @@ export function AssetEditForm({
   const [marketplaceSources, setMarketplaceSources] = useState<MarketplaceSource[]>([]);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(thumbnailUrl || null);
+  const [removeThumbnail, setRemoveThumbnail] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,28 +78,8 @@ export function AssetEditForm({
   function handleFileChange(file: File | null) {
     setThumbnailFile(file);
     if (thumbnailPreview && !thumbnailUrl) URL.revokeObjectURL(thumbnailPreview);
-    setThumbnailPreview(file ? URL.createObjectURL(file) : thumbnailUrl || null);
-  }
-
-  function addTag(value: string) {
-    const trimmed = value.trim().toLowerCase();
-    if (!trimmed || tags.includes(trimmed)) return;
-    setTags([...tags, trimmed]);
-  }
-
-  function removeTag(tag: string) {
-    setTags(tags.filter((t) => t !== tag));
-  }
-
-  function handleTagKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
-    if ((event.key === 'Enter' || event.key === ',') && event.currentTarget.value.trim()) {
-      event.preventDefault();
-      addTag(event.currentTarget.value);
-      event.currentTarget.value = '';
-    }
-    if (event.key === 'Backspace' && !event.currentTarget.value && tags.length > 0) {
-      removeTag(tags[tags.length - 1]);
-    }
+    setRemoveThumbnail(file === null);
+    setThumbnailPreview(file ? URL.createObjectURL(file) : null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -128,6 +110,7 @@ export function AssetEditForm({
           licenseKey: licenseKey.trim() || undefined,
           marketplaceSourceId: marketplaceSourceId || undefined,
           productUrl: productUrl.trim() || undefined,
+          removeThumbnail,
         }),
       });
 
@@ -214,7 +197,7 @@ export function AssetEditForm({
             value={description}
             onChange={setDescription}
             disabled={saving}
-            textareaClassName="w-full rounded-lg bg-zinc-800 border border-white/10 px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+            textareaClassName="w-full"
           />
 
           {/* Tags */}
@@ -222,36 +205,10 @@ export function AssetEditForm({
             <label className="block text-sm font-medium text-zinc-300 mb-1.5">
               Tags
             </label>
-            <div className="flex flex-wrap gap-2 p-2 rounded-lg bg-zinc-800 border border-white/10">
-              {tags.map((tag) => (
-                <span key={tag} className="px-2 py-1 text-sm bg-indigo-500/20 text-indigo-300 rounded flex items-center gap-1">
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => removeTag(tag)}
-                    className="text-indigo-400 hover:text-indigo-200"
-                    disabled={saving}
-                  >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </span>
-              ))}
-              <input
-                type="text"
-                placeholder={tags.length === 0 ? "Add tags..." : ""}
-                onKeyDown={handleTagKeyDown}
-                onBlur={(e) => {
-                  if (e.target.value.trim()) {
-                    addTag(e.target.value);
-                    e.target.value = '';
-                  }
-                }}
-                className="flex-1 min-w-[120px] bg-transparent text-white placeholder-zinc-500 focus:outline-none"
-                disabled={saving}
-              />
-            </div>
+            <TagInput tags={tags} onChange={setTags} disabled={saving} placeholder="Add tags..." />
+            <p className="mt-1 text-xs text-zinc-500">
+              Suggestions appear from tags you have used before
+            </p>
           </div>
 
           {/* License Key */}
