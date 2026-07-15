@@ -1,4 +1,4 @@
-import { useState, useRef, type ChangeEvent, type DragEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
 import { ConfirmDialog } from './ConfirmDialog';
 import { uploadFile, type UploadProgress } from '../lib/multipart-upload';
 
@@ -17,18 +17,31 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
-function formatProgress(progress: UploadProgress): string {
-  const pct = progress.total > 0 ? Math.round((progress.bytes / progress.total) * 100) : 0;
-  if (progress.phase === 'hashing') {
-    return `Computing hash… ${pct}%`;
-  }
-  if (progress.phase === 'completing') {
-    return 'Finalizing upload…';
-  }
-  if (progress.phase === 'processing') {
-    return 'Processing upload…';
-  }
-  return `Uploading… ${pct}% (${formatSize(progress.bytes)} / ${formatSize(progress.total)})`;
+type QueueStatus = 'queued' | UploadProgress['phase'] | 'stalled' | 'failed' | 'complete';
+
+interface QueueItem {
+  id: string;
+  file: File;
+  status: QueueStatus;
+  bytes: number;
+  total: number;
+  error?: string;
+  lastActivity: number;
+  attempt: number;
+}
+
+const STALL_AFTER_MS = 15_000;
+
+function statusLabel(item: QueueItem): string {
+  const percent = item.total > 0 ? Math.round((item.bytes / item.total) * 100) : 0;
+  if (item.status === 'hashing') return `Checking file · ${percent}%`;
+  if (item.status === 'uploading') return `${percent}% · ${formatSize(item.bytes)} of ${formatSize(item.total)}`;
+  if (item.status === 'completing') return 'Finalizing';
+  if (item.status === 'processing') return 'Processing';
+  if (item.status === 'stalled') return `No progress detected · ${percent}%`;
+  if (item.status === 'failed') return item.error ?? 'Upload failed';
+  if (item.status === 'complete') return 'Uploaded';
+  return 'Waiting to upload';
 }
 
 export function FileUploader({
@@ -38,10 +51,12 @@ export function FileUploader({
   onFilesUploaded,
   readOnly = false,
 }: Props) {
-  const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState<{ current: number; total: number; detail?: string } | null>(null);
+  const [queue, setQueue] = useState<QueueItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const queueRef = useRef<QueueItem[]>([]);
+  const processingRef = useRef(false);
+  const controllersRef = useRef(new Map<string, AbortController>());
   const [dragOver, setDragOver] = useState(false);
   const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -49,6 +64,32 @@ export function FileUploader({
   const deletingFile = deletingFileId
     ? existingFiles.find((f) => f.id === deletingFileId)
     : null;
+
+  function replaceQueue(next: QueueItem[]): void {
+    queueRef.current = next;
+    setQueue(next);
+  }
+
+  function updateQueueItem(id: string, update: Partial<QueueItem>): void {
+    replaceQueue(queueRef.current.map((item) => item.id === id ? { ...item, ...update } : item));
+  }
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const now = Date.now();
+      const stalled = queueRef.current.map((item) => (
+        item.status === 'uploading' && now - item.lastActivity >= STALL_AFTER_MS
+          ? { ...item, status: 'stalled' as const }
+          : item
+      ));
+      if (stalled.some((item, index) => item !== queueRef.current[index])) replaceQueue(stalled);
+    }, 2_000);
+
+    return () => {
+      window.clearInterval(timer);
+      controllersRef.current.forEach((controller) => controller.abort());
+    };
+  }, []);
 
   async function deleteFile() {
     if (!deletingFileId) return;
@@ -73,49 +114,109 @@ export function FileUploader({
     }
   }
 
-  async function uploadFiles(files: FileList | File[]) {
+  async function processQueue(): Promise<void> {
+    if (processingRef.current) return;
+    processingRef.current = true;
+    let uploadedAny = false;
+
+    try {
+      for (;;) {
+        const item = queueRef.current.find((entry) => entry.status === 'queued');
+        if (!item) break;
+
+        const attempt = item.attempt + 1;
+        const controller = new AbortController();
+        controllersRef.current.set(item.id, controller);
+        updateQueueItem(item.id, {
+          status: 'hashing',
+          bytes: 0,
+          error: undefined,
+          lastActivity: Date.now(),
+          attempt,
+        });
+
+        try {
+          await uploadFile({
+            file: item.file,
+            productId,
+            versionId,
+            signal: controller.signal,
+            onProgress: (progress) => {
+              const current = queueRef.current.find((entry) => entry.id === item.id);
+              if (!current || current.attempt !== attempt) return;
+              updateQueueItem(item.id, {
+                status: progress.phase,
+                bytes: progress.bytes,
+                total: progress.total,
+                lastActivity: Date.now(),
+              });
+            },
+          });
+
+          const current = queueRef.current.find((entry) => entry.id === item.id);
+          if (current?.attempt === attempt) {
+            updateQueueItem(item.id, {
+              status: 'complete',
+              bytes: item.file.size,
+              lastActivity: Date.now(),
+            });
+            uploadedAny = true;
+          }
+        } catch (uploadError) {
+          const current = queueRef.current.find((entry) => entry.id === item.id);
+          if (current?.attempt === attempt) {
+            updateQueueItem(item.id, {
+              status: 'failed',
+              error: uploadError instanceof Error ? uploadError.message : 'Upload failed',
+            });
+          }
+        } finally {
+          controllersRef.current.delete(item.id);
+        }
+      }
+    } finally {
+      processingRef.current = false;
+      if (queueRef.current.some((item) => item.status === 'queued')) {
+        void processQueue();
+      } else if (uploadedAny) {
+        onFilesUploaded();
+      }
+    }
+  }
+
+  function uploadFiles(files: FileList | File[]) {
     const fileArray = Array.from(files);
     if (fileArray.length === 0) return;
     setError(null);
-    setUploading(true);
-    setProgress({ current: 0, total: fileArray.length });
+    const now = Date.now();
+    replaceQueue([
+      ...queueRef.current,
+      ...fileArray.map((file, index): QueueItem => ({
+        id: `${now}-${index}-${crypto.randomUUID()}`,
+        file,
+        status: 'queued',
+        bytes: 0,
+        total: file.size,
+        lastActivity: now,
+        attempt: 0,
+      })),
+    ]);
+    if (inputRef.current) inputRef.current.value = '';
+    void processQueue();
+  }
 
-    try {
-      for (let i = 0; i < fileArray.length; i++) {
-        const file = fileArray[i];
-        setProgress({
-          current: i,
-          total: fileArray.length,
-          detail: `Preparing ${file.name}…`,
-        });
-
-        await uploadFile({
-          file,
-          productId,
-          versionId,
-          onProgress: (uploadProgress) => {
-            setProgress({
-              current: i,
-              total: fileArray.length,
-              detail: `${file.name}: ${formatProgress(uploadProgress)}`,
-            });
-          },
-        });
-
-        setProgress({
-          current: i + 1,
-          total: fileArray.length,
-          detail: undefined,
-        });
-      }
-      if (inputRef.current) inputRef.current.value = '';
-      onFilesUploaded();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
-    } finally {
-      setUploading(false);
-      setProgress(null);
-    }
+  function restartUpload(id: string): void {
+    const item = queueRef.current.find((entry) => entry.id === id);
+    if (!item) return;
+    controllersRef.current.get(id)?.abort();
+    updateQueueItem(id, {
+      status: 'queued',
+      bytes: 0,
+      error: undefined,
+      lastActivity: Date.now(),
+      attempt: item.attempt + 1,
+    });
+    void processQueue();
   }
 
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
@@ -148,6 +249,19 @@ export function FileUploader({
     e.stopPropagation();
     setDeletingFileId(fileId);
   }
+
+  const totalQueueBytes = queue.reduce((sum, item) => sum + item.total, 0);
+  const transferredQueueBytes = queue.reduce((sum, item) => {
+    if (item.status === 'complete' || item.status === 'completing' || item.status === 'processing') {
+      return sum + item.total;
+    }
+    if (item.status === 'uploading' || item.status === 'stalled') return sum + item.bytes;
+    return sum;
+  }, 0);
+  const queuePercent = totalQueueBytes > 0
+    ? Math.round((transferredQueueBytes / totalQueueBytes) * 100)
+    : 0;
+  const completedCount = queue.filter((item) => item.status === 'complete').length;
 
   return (
     <div className="space-y-3">
@@ -205,33 +319,106 @@ export function FileUploader({
       )}
 
       {!readOnly && (
-      <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={() => inputRef.current?.click()}
-        className={`flex cursor-pointer items-center justify-center rounded-lg border border-dashed px-4 py-3 text-sm transition-colors ${
-          dragOver
-            ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300'
-            : 'border-white/10 bg-white/[0.02] text-zinc-500 hover:border-white/20 hover:text-zinc-400'
-        }`}
-      >
-        {uploading && progress ? (
-          <span className="text-center">
-            {progress.detail ?? `Uploading ${progress.current + 1}/${progress.total} file(s)…`}
-          </span>
-        ) : (
-          <span>Drop files here or click to upload</span>
-        )}
-        <input
-          ref={inputRef}
-          type="file"
-          multiple
-          className="hidden"
-          onChange={handleChange}
-          disabled={uploading}
-        />
-      </div>
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => inputRef.current?.click()}
+          className={`flex cursor-pointer items-center justify-center rounded-lg border border-dashed px-4 py-3 text-sm transition-colors ${
+            dragOver
+              ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300'
+              : 'border-white/10 bg-white/[0.02] text-zinc-500 hover:border-white/20 hover:text-zinc-400'
+          }`}
+        >
+          <span>{queue.length > 0 ? 'Drop or choose more files' : 'Drop files here or click to upload'}</span>
+          <input
+            ref={inputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={handleChange}
+          />
+        </div>
+      )}
+
+      {!readOnly && queue.length > 0 && (
+        <section className="overflow-hidden rounded-lg border border-white/10 bg-black/15" aria-label="Upload queue">
+          <div className="border-b border-white/10 px-3 py-2.5">
+            <div className="mb-2 flex items-center justify-between gap-3 text-xs">
+              <span className="font-medium text-zinc-300">
+                {completedCount} of {queue.length} uploaded
+              </span>
+              <div className="flex items-center gap-3">
+                <span className="tabular-nums text-zinc-500">{queuePercent}%</span>
+                {completedCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => replaceQueue(queueRef.current.filter((item) => item.status !== 'complete'))}
+                    className="text-zinc-500 transition-colors hover:text-zinc-300"
+                  >
+                    Clear finished
+                  </button>
+                )}
+              </div>
+            </div>
+            <div
+              className="h-1 overflow-hidden rounded-full bg-white/10"
+              role="progressbar"
+              aria-label="Total upload progress"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={queuePercent}
+            >
+              <div
+                className="h-full rounded-full bg-indigo-500 transition-[width] duration-200"
+                style={{ width: `${queuePercent}%` }}
+              />
+            </div>
+          </div>
+          <ul className="divide-y divide-white/5" aria-live="polite">
+            {queue.map((item) => {
+              const itemPercent = item.total > 0 ? Math.round((item.bytes / item.total) * 100) : 0;
+              const canRestart = item.status === 'failed' || item.status === 'stalled';
+              const progressWidth = item.status === 'complete' || item.status === 'completing' || item.status === 'processing'
+                ? 100
+                : itemPercent;
+
+              return (
+                <li key={item.id} className="relative px-3 py-2.5">
+                  <div
+                    className={`absolute inset-y-0 left-0 opacity-10 transition-[width] duration-200 ${
+                      item.status === 'failed' || item.status === 'stalled' ? 'bg-amber-500' : 'bg-indigo-500'
+                    }`}
+                    style={{ width: `${progressWidth}%` }}
+                  />
+                  <div className="relative flex items-center gap-2.5">
+                    <FileIcon mimeType={item.file.type} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="truncate text-sm text-zinc-200" title={item.file.name}>{item.file.name}</span>
+                        <span className="shrink-0 text-xs tabular-nums text-zinc-500">{formatSize(item.total)}</span>
+                      </div>
+                      <p className={`mt-0.5 truncate text-xs ${
+                        item.status === 'failed' ? 'text-red-400' : item.status === 'stalled' ? 'text-amber-400' : 'text-zinc-500'
+                      }`}>
+                        {statusLabel(item)}
+                      </p>
+                    </div>
+                    {canRestart && (
+                      <button
+                        type="button"
+                        onClick={() => restartUpload(item.id)}
+                        className="shrink-0 rounded-md border border-white/10 px-2 py-1 text-xs font-medium text-zinc-300 transition-colors hover:border-indigo-400/40 hover:bg-indigo-500/10 hover:text-white"
+                      >
+                        Restart
+                      </button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       )}
 
       {readOnly && existingFiles.length === 0 && (

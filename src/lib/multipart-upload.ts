@@ -47,13 +47,16 @@ function uploadsBase(productId: string, versionId: string): string {
 export async function hashFile(
   file: File,
   onProgress?: (bytes: number, total: number) => void,
+  signal?: AbortSignal,
 ): Promise<string> {
   const hasher = await createSHA256();
   let offset = 0;
 
   while (offset < file.size) {
+    signal?.throwIfAborted();
     const chunk = file.slice(offset, offset + HASH_CHUNK_SIZE);
     const buffer = await chunk.arrayBuffer();
+    signal?.throwIfAborted();
     hasher.update(new Uint8Array(buffer));
     offset += chunk.size;
     onProgress?.(offset, file.size);
@@ -66,36 +69,79 @@ async function uploadPartWithRetry(
   url: string,
   blob: Blob,
   partNumber: number,
+  onProgress?: (bytes: number) => void,
+  signal?: AbortSignal,
 ): Promise<string> {
   let lastError: unknown;
 
   for (let attempt = 0; attempt < MAX_PART_RETRIES; attempt++) {
     try {
+      signal?.throwIfAborted();
       const uploadUrl = typeof window !== 'undefined' && new URL(url).origin !== window.location.origin
         ? `/api/uploads/proxy?url=${encodeURIComponent(url)}`
         : url;
-      const response = await fetch(uploadUrl, {
-        method: 'PUT',
-        body: blob,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Part ${partNumber} upload failed with status ${response.status}`);
-      }
-
-      const etag = response.headers.get('ETag') ?? response.headers.get('etag');
-      if (!etag) {
-        throw new Error(`Part ${partNumber} upload succeeded but no ETag was returned`);
-      }
-
-      return etag.replace(/^"|"$/g, '');
+      onProgress?.(0);
+      return await uploadBlob(uploadUrl, blob, partNumber, onProgress, signal);
     } catch (err) {
+      if (signal?.aborted) throw err;
       lastError = err;
-      await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+      await wait(500 * (attempt + 1), signal);
     }
   }
 
   throw lastError instanceof Error ? lastError : new Error(`Failed to upload part ${partNumber}`);
+}
+
+function uploadBlob(
+  url: string,
+  blob: Blob,
+  partNumber: number,
+  onProgress?: (bytes: number) => void,
+  signal?: AbortSignal,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open('PUT', url);
+    request.upload.onprogress = (event) => onProgress?.(event.loaded);
+    request.onerror = () => reject(new Error(`Part ${partNumber} upload failed`));
+    request.onabort = () => reject(new DOMException('Upload aborted', 'AbortError'));
+    request.onload = () => {
+      if (request.status < 200 || request.status >= 300) {
+        reject(new Error(`Part ${partNumber} upload failed with status ${request.status}`));
+        return;
+      }
+      const etag = request.getResponseHeader('ETag') ?? request.getResponseHeader('etag');
+      if (!etag) {
+        reject(new Error(`Part ${partNumber} upload succeeded but no ETag was returned`));
+        return;
+      }
+      onProgress?.(blob.size);
+      resolve(etag.replace(/^"|"$/g, ''));
+    };
+
+    const abort = () => request.abort();
+    signal?.addEventListener('abort', abort, { once: true });
+    request.onloadend = () => signal?.removeEventListener('abort', abort);
+    request.send(blob);
+  });
+}
+
+function wait(milliseconds: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason);
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      signal?.removeEventListener('abort', abort);
+      resolve();
+    }, milliseconds);
+    const abort = () => {
+      window.clearTimeout(timeout);
+      reject(new DOMException('Upload aborted', 'AbortError'));
+    };
+    signal?.addEventListener('abort', abort, { once: true });
+  });
 }
 
 function sessionStorageKey(productId: string, versionId: string, sha256: string): string {
@@ -107,18 +153,20 @@ export async function uploadFileViaMultipart(params: {
   productId: string;
   versionId: string;
   onProgress?: (progress: UploadProgress) => void;
+  signal?: AbortSignal;
 }): Promise<UploadedFileResult> {
-  const { file, productId, versionId, onProgress } = params;
+  const { file, productId, versionId, onProgress, signal } = params;
   const base = uploadsBase(productId, versionId);
 
   onProgress?.({ phase: 'hashing', bytes: 0, total: file.size });
   const sha256 = await hashFile(file, (bytes, total) => {
     onProgress?.({ phase: 'hashing', bytes, total });
-  });
+  }, signal);
 
   const initiateResponse = await fetch(`${base}/initiate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    signal,
     body: JSON.stringify({
       sha256,
       fileName: file.name,
@@ -168,13 +216,24 @@ export async function uploadFileViaMultipart(params: {
     const end = Math.min(start + requiredPartSize, file.size);
     return sum + (end - start);
   }, 0);
+  const activePartBytes = new Map<number, number>();
 
-  onProgress?.({ phase: 'uploading', bytes: uploadedBytes, total: file.size });
+  function reportUploadProgress(): void {
+    const activeBytes = Array.from(activePartBytes.values()).reduce((sum, bytes) => sum + bytes, 0);
+    onProgress?.({
+      phase: 'uploading',
+      bytes: Math.min(uploadedBytes + activeBytes, file.size),
+      total: file.size,
+    });
+  }
+
+  reportUploadProgress();
 
   async function reportPart(partNumber: number, etag: string): Promise<void> {
     const response = await fetch(`${base}/${sessionId}/parts`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
+      signal,
       body: JSON.stringify({ partNumber, etag }),
     });
 
@@ -192,6 +251,7 @@ export async function uploadFileViaMultipart(params: {
     const presignResponse = await fetch(`${base}/${sessionId}/parts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal,
       body: JSON.stringify({ partNumbers: [partNumber] }),
     });
 
@@ -206,12 +266,16 @@ export async function uploadFileViaMultipart(params: {
       throw new Error(`Missing presigned URL for part ${partNumber}`);
     }
 
-    const etag = await uploadPartWithRetry(url, chunk, partNumber);
+    const etag = await uploadPartWithRetry(url, chunk, partNumber, (bytes) => {
+      activePartBytes.set(partNumber, bytes);
+      reportUploadProgress();
+    }, signal);
     completedParts.set(partNumber, etag);
     await reportPart(partNumber, etag);
 
+    activePartBytes.delete(partNumber);
     uploadedBytes += chunk.size;
-    onProgress?.({ phase: 'uploading', bytes: uploadedBytes, total: file.size });
+    reportUploadProgress();
   }
 
   const queue = [...partsToUpload];
@@ -234,6 +298,7 @@ export async function uploadFileViaMultipart(params: {
   const completeResponse = await fetch(`${base}/${sessionId}/complete`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    signal,
     body: JSON.stringify({ parts }),
   });
 
@@ -245,8 +310,8 @@ export async function uploadFileViaMultipart(params: {
   const completeData = await completeResponse.json() as { file?: UploadedFileResult };
   if (!completeData.file) {
     for (;;) {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const statusResponse = await fetch(`${base}/${sessionId}`);
+      await wait(1000, signal);
+      const statusResponse = await fetch(`${base}/${sessionId}`, { signal });
       if (!statusResponse.ok) throw new Error('Could not check upload processing status');
       const status = await statusResponse.json() as { status?: string; errorSummary?: string };
       if (status.status === 'completed') break;
@@ -264,19 +329,42 @@ export async function uploadFileLegacy(params: {
   file: File;
   productId: string;
   versionId: string;
+  onProgress?: (progress: UploadProgress) => void;
+  signal?: AbortSignal;
 }): Promise<void> {
+  params.signal?.throwIfAborted();
   const form = new FormData();
   form.append('file', params.file);
+  params.onProgress?.({ phase: 'uploading', bytes: 0, total: params.file.size });
 
-  const response = await fetch(
-    `/api/assets/${params.productId}/versions/${params.versionId}/files`,
-    { method: 'POST', body: form },
-  );
-
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error((data as { error?: string }).error ?? `Failed to upload ${params.file.name}`);
-  }
+  await new Promise<void>((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open('POST', `/api/assets/${params.productId}/versions/${params.versionId}/files`);
+    request.upload.onprogress = (event) => params.onProgress?.({
+      phase: 'uploading',
+      bytes: Math.min(event.loaded, params.file.size),
+      total: params.file.size,
+    });
+    request.onerror = () => reject(new Error(`Failed to upload ${params.file.name}`));
+    request.onabort = () => reject(new DOMException('Upload aborted', 'AbortError'));
+    request.onload = () => {
+      if (request.status >= 200 && request.status < 300) {
+        resolve();
+        return;
+      }
+      let data: { error?: string } = {};
+      try {
+        data = JSON.parse(request.responseText) as { error?: string };
+      } catch {
+        // Use the fallback error below when the response is not JSON.
+      }
+      reject(new Error(data.error ?? `Failed to upload ${params.file.name}`));
+    };
+    const abort = () => request.abort();
+    params.signal?.addEventListener('abort', abort, { once: true });
+    request.onloadend = () => params.signal?.removeEventListener('abort', abort);
+    request.send(form);
+  });
 }
 
 export async function uploadFile(params: {
@@ -284,6 +372,7 @@ export async function uploadFile(params: {
   productId: string;
   versionId: string;
   onProgress?: (progress: UploadProgress) => void;
+  signal?: AbortSignal;
 }): Promise<void> {
   try {
     await uploadFileViaMultipart(params);

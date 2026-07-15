@@ -19,14 +19,12 @@ interface Props {
 export function VersionsPanel({ productId, initialVersions, readOnly = false }: Props) {
   const [versions, setVersions] = useState<Version[]>(initialVersions);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   async function refreshVersions() {
     const res = await fetch(`/api/assets/${productId}`);
     if (!res.ok) return;
     const data = (await res.json()) as { versions: Version[] };
     setVersions(data.versions);
-    setRefreshKey((k) => k + 1);
   }
 
   async function handleCreateVersion(version: string, releaseNotes: string) {
@@ -74,7 +72,7 @@ export function VersionsPanel({ productId, initialVersions, readOnly = false }: 
         <div className="space-y-4">
           {[...versions].reverse().map((version) => (
             <details
-              key={`${version.id}-${refreshKey}`}
+              key={version.id}
               open
               className="group rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden"
             >
