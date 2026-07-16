@@ -283,7 +283,7 @@ class NextcloudSyncDestination extends WebdavSyncDestination {
     const move = await this.request(this.uploadTarget(sessionId, '.file'), { method: 'MOVE', headers: this.headers({ Destination: target.toString(), Overwrite: 'F', 'OC-Checksum': checksum }) }, input.signal);
     if (!move.ok) {
       const afterMove = await this.remoteProperties(target);
-      if (!afterMove || afterMove.byteSize !== input.source.byteSize || afterMove.checksum?.toUpperCase() !== checksum) throw classifyStatus(move.status);
+      if (!afterMove || afterMove.byteSize !== input.source.byteSize || afterMove.checksum?.toUpperCase() !== checksum.toUpperCase()) throw classifyStatus(move.status);
     }
     return { remoteId: target.toString(), etag: move.headers.get('oc-etag') ?? move.headers.get('etag') ?? undefined, transferSessionId: null };
   }
