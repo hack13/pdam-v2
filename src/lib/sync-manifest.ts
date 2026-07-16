@@ -4,6 +4,10 @@ import { fileThumbnails, globalFileBlobs, productVersions, products, userAssetFi
 
 export const SYNC_MANIFEST_VERSION = 1;
 
+function safeFileName(fileName: string) {
+  return fileName.replace(/[\\/]/g, '_').replace(/^\.+$/, '_');
+}
+
 function encodeCursor(date: Date, id: string) {
   return Buffer.from(JSON.stringify({ t: date.toISOString(), id })).toString('base64url');
 }
@@ -69,6 +73,7 @@ export async function buildSyncManifest(userId: string, cursor: string | null = 
           blobId: blob.id,
           sha256: blob.sha256,
           fileName: blob.fileName,
+          path: `assets/${product.slug}/versions/${version.version}/files/${blob.sha256}-${safeFileName(blob.fileName)}`,
           mimeType: blob.mimeType,
           byteSize: blob.fileSize,
           assetId: product.id,

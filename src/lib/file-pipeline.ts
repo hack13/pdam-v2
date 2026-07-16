@@ -300,6 +300,50 @@ export async function getFileByBlobId(blobId: string): Promise<{ data: Buffer; f
   return { data, fileName: blob.fileName, mimeType: blob.mimeType };
 }
 
+/**
+ * Resolves a blob to a range-readable source. Destination workers use this
+ * instead of buffering the complete file, which keeps multi-gigabyte backups
+ * within a fixed memory budget.
+ */
+export async function getFileSourceByBlobId(blobId: string): Promise<{
+  fileName: string;
+  mimeType: string;
+  byteSize: number;
+  sha256: string;
+  openRange(start: number, end: number): Promise<AsyncIterable<Uint8Array>>;
+} | null> {
+  const blob = await db.query.globalFileBlobs.findFirst({ where: eq(globalFileBlobs.id, blobId) });
+  if (!blob) return null;
+  const storageObj = await db.query.blobStorageObjects.findFirst({ where: eq(blobStorageObjects.blobId, blobId) });
+  if (!storageObj) return null;
+
+  // Legacy objects are promoted once through the existing safe buffered path.
+  // All newly stored objects use range reads directly from local storage or S3.
+  if (isOldBlobKey(storageObj.storageKey)) {
+    const legacy = await getFileByBlobId(blobId);
+    if (!legacy) return null;
+    const legacyData = legacy.data;
+    return {
+      fileName: legacy.fileName,
+      mimeType: legacy.mimeType,
+      byteSize: legacyData.length,
+      sha256: blob.sha256,
+      async openRange(start, end) {
+        async function* slice() { yield new Uint8Array(legacyData.subarray(start, end + 1)); }
+        return slice();
+      },
+    };
+  }
+  if (!storage.getObjectStream) return null;
+  return {
+    fileName: blob.fileName,
+    mimeType: blob.mimeType,
+    byteSize: blob.fileSize,
+    sha256: blob.sha256,
+    openRange: (start, end) => storage.getObjectStream!(storageObj.storageKey, { start, end }),
+  };
+}
+
 export interface FileStreamResult {
   stream: AsyncIterable<Uint8Array>;
   fileName: string;

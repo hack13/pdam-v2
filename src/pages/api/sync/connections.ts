@@ -15,7 +15,7 @@ export const POST: APIRoute = async (context) => {
   const auth = await requireAuth(context); if (auth instanceof Response) return auth;
   const body = await context.request.json().catch(() => ({})) as Record<string, unknown>;
   const providerType = String(body.providerType ?? '');
-  if (!['s3', 'webdav', 'google-drive'].includes(providerType)) return jsonError('Provider must be s3, webdav, or google-drive');
+  if (!['s3', 'webdav', 'nextcloud', 'google-drive'].includes(providerType)) return jsonError('Provider must be s3, webdav, nextcloud, or google-drive');
   const name = String(body.name ?? '').trim();
   if (!name && providerType !== 'google-drive') return jsonError('Connection name is required');
   if (providerType === 'google-drive') {
@@ -56,6 +56,14 @@ export const POST: APIRoute = async (context) => {
       if (!['http:', 'https:'].includes(endpoint.protocol)) throw new Error('unsupported protocol');
     } catch {
       return jsonError('S3 endpoint must be a valid http(s) URL, such as https://s3.example.com');
+    }
+  }
+  if (providerType === 'nextcloud') {
+    try {
+      const endpoint = new URL(String(credentials.endpoint));
+      if (!/\/remote\.php\/dav\/files\/[^/]+\/?$/.test(endpoint.pathname)) throw new Error('invalid Nextcloud collection URL');
+    } catch {
+      return jsonError('Nextcloud endpoint must be an HTTPS collection URL ending in /remote.php/dav/files/<user>/');
     }
   }
   const [connection] = await db.insert(userStorageConnections).values({ userId: auth.user.id, providerType, providerName: name, externalAccountId: `${providerType}:${Date.now()}`, rootPath: body.rootPath ? String(body.rootPath) : null, credentialsEncrypted: encryptSyncSecret(JSON.stringify(credentials)), syncMode: 'snapshot' }).returning();
