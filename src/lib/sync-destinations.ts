@@ -263,7 +263,7 @@ class NextcloudSyncDestination extends WebdavSyncDestination {
     const existing = await this.remoteProperties(target);
     const checksum = `SHA256:${input.sha256}`;
     if (existing) {
-      if (existing.byteSize === input.source.byteSize && existing.checksum?.toUpperCase() === checksum) return { remoteId: target.toString(), etag: existing.etag ?? undefined, transferSessionId: null };
+      if (existing.byteSize === input.source.byteSize && existing.checksum?.toUpperCase() === checksum.toUpperCase()) return { remoteId: target.toString(), etag: existing.etag ?? undefined, transferSessionId: null };
       throw new SyncDestinationError('A different file already exists at this immutable backup path', 'REMOTE_CONFLICT', 412);
     }
     await this.ensureCollections(input.destinationKey);
