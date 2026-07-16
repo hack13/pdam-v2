@@ -269,8 +269,9 @@ class NextcloudSyncDestination extends WebdavSyncDestination {
     await this.ensureCollections(input.destinationKey);
     const sessionId = input.resume?.transferSessionId ?? randomUUID();
     await this.ensureUploadSession(sessionId);
-    await input.resume?.onProgress({ transferSessionId: sessionId, bytesTransferred: 0 });
     const existingChunks = await this.existingChunks(sessionId);
+    const alreadyTransferred = [...existingChunks.values()].reduce((sum, size) => sum + size, 0);
+    await input.resume?.onProgress({ transferSessionId: sessionId, bytesTransferred: alreadyTransferred });
     let completed = 0;
     for (let start = 0; start < input.source.byteSize; start += NEXTCLOUD_CHUNK_BYTES) {
       const end = Math.min(input.source.byteSize - 1, start + NEXTCLOUD_CHUNK_BYTES - 1);
