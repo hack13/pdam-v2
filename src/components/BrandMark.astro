@@ -1,4 +1,6 @@
 ---
+import logo from '../assets/brand/tailcache-crystal-tail-clean.webp';
+
 interface Props {
   class?: string;
   alt?: string;
@@ -9,7 +11,7 @@ const { class: className = "", alt = "TailCache crystal-tail mark" } =
 ---
 
 <img
-  src="/brand/tailcache-crystal-tail-clean.webp"
+  src={logo.src}
   alt={alt}
   class={className}
   width="1191"
