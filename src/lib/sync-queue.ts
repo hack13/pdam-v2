@@ -21,9 +21,9 @@ export async function getSyncBoss() {
     boss.on('error', (error) => console.error('[pgboss] error', error));
     boss.on('warning', (warning) => console.warn('[pgboss] warning', warning));
     bossPromise = boss.start().then(async () => {
-      // pg-boss enforces a 24-hour maximum expiration. Resumable Nextcloud
-      // item state lets the retry continue safely after a long job expires.
-      await boss.createQueue(SYNC_QUEUE, { notify: true, retryLimit: 5, retryDelay: 30, retryBackoff: true, retryDelayMax: 43_200, heartbeatSeconds: 60, expireInSeconds: 24 * 3600, deleteAfterSeconds: 30 * 86400 });
+      // pg-boss requires expiration to be strictly less than 24 hours.
+      // Resumable Nextcloud state lets a retry continue after expiration.
+      await boss.createQueue(SYNC_QUEUE, { notify: true, retryLimit: 5, retryDelay: 30, retryBackoff: true, retryDelayMax: 43_200, heartbeatSeconds: 60, expireInSeconds: 23 * 3600 + 59 * 60, deleteAfterSeconds: 30 * 86400 });
       await boss.createQueue(SYNC_SCHEDULER_QUEUE, { notify: true, retryLimit: 3, retryDelay: 30, retryBackoff: true, retryDelayMax: 300, heartbeatSeconds: 60, expireInSeconds: 300, deleteAfterSeconds: 7 * 86400 });
       await boss.createQueue(UPLOAD_PROMOTION_QUEUE, { notify: true, retryLimit: 5, retryDelay: 15, retryBackoff: true, retryDelayMax: 900, heartbeatSeconds: 60, expireInSeconds: 3600, deleteAfterSeconds: 30 * 86400 });
       await boss.schedule(SYNC_SCHEDULER_QUEUE, '* * * * *', { type: 'due-syncs' }, {
@@ -72,7 +72,7 @@ export async function enqueueConnectionSync(connectionId: string, userId: string
   }
   const run = (await db.insert(syncRuns).values({ connectionId, userId, status: 'queued', pgBossQueue: SYNC_QUEUE }).returning())[0];
   const boss = await getSyncBoss();
-  const jobId = await boss.send(SYNC_QUEUE, { runId: run.id, connectionId, userId } satisfies SyncJobData, { retryLimit: 5, retryDelay: 30, retryBackoff: true, retryDelayMax: 43_200, heartbeatSeconds: 60, expireInSeconds: 24 * 3600, group: { id: userId } });
+  const jobId = await boss.send(SYNC_QUEUE, { runId: run.id, connectionId, userId } satisfies SyncJobData, { retryLimit: 5, retryDelay: 30, retryBackoff: true, retryDelayMax: 43_200, heartbeatSeconds: 60, expireInSeconds: 23 * 3600 + 59 * 60, group: { id: userId } });
   if (!jobId) throw new Error('Sync job was not queued');
   await db.update(syncRuns).set({ pgBossJobId: jobId }).where(eq(syncRuns.id, run.id));
   await notifySyncRunChanged(run.id);
