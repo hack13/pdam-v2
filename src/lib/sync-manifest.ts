@@ -16,6 +16,17 @@ export function syncThumbnailPath(thumbnailId: string) {
   return `archive-thumbs/${thumbnailId}.webp`;
 }
 
+/**
+ * The human-readable backup layout intentionally uses original filenames.
+ * Detect conflicting contents up front so no destination can skip or overwrite
+ * a different file that happens to have the same asset/version/name path.
+ */
+export function findConflictingSyncPaths<T extends { path: string; sha256: string }>(items: T[]) {
+  const byPath = new Map<string, T[]>();
+  for (const item of items) byPath.set(item.path, [...(byPath.get(item.path) ?? []), item]);
+  return [...byPath.values()].filter((group) => new Set(group.map((item) => item.sha256)).size > 1);
+}
+
 function encodeCursor(date: Date, id: string) {
   return Buffer.from(JSON.stringify({ t: date.toISOString(), id })).toString('base64url');
 }

@@ -120,6 +120,7 @@ function progressFor(run: typeof syncRuns.$inferSelect) {
   const activeStatuses = ['queued', 'running', 'retrying', 'cancellation_requested'];
   const statusClassNames = ['bg-indigo-400/10', 'text-indigo-300', 'bg-emerald-400/10', 'text-emerald-300', 'bg-amber-400/10', 'text-amber-300', 'bg-zinc-400/10', 'text-zinc-300', 'bg-red-400/10', 'text-red-300'];
   const refreshState = document.querySelector<HTMLElement>('#activity-refresh-state');
+  const failureRefreshTimers = new Map<string, number>();
 
   document.querySelectorAll<HTMLDetailsElement>('[data-activity-detail]').forEach((detail) => {
     detail.open = false;
@@ -225,6 +226,16 @@ function progressFor(run: typeof syncRuns.$inferSelect) {
     }
   }
 
+  function scheduleFailuresRefresh(card: HTMLElement) {
+    const runId = card.dataset.runCard;
+    if (!runId || failureRefreshTimers.has(runId)) return;
+    const timer = window.setTimeout(() => {
+      failureRefreshTimers.delete(runId);
+      if (card.matches('details[open]')) void loadFailures(card);
+    }, 1_500);
+    failureRefreshTimers.set(runId, timer);
+  }
+
   document.querySelectorAll<HTMLDetailsElement>('[data-activity-detail]').forEach((detail) => {
     detail.addEventListener('toggle', () => {
       if (detail.open) void loadFailures(detail);
@@ -256,7 +267,7 @@ function progressFor(run: typeof syncRuns.$inferSelect) {
     if (payload.run) {
       updateRunCard(payload.run);
       const card = document.querySelector<HTMLElement>(`[data-run-card="${payload.run.id}"]`);
-      if (card?.matches('details[open]')) void loadFailures(card);
+      if (card?.matches('details[open]')) scheduleFailuresRefresh(card);
     }
   };
   events.onerror = () => {
