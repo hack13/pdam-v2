@@ -204,7 +204,7 @@ function progressFor(run: typeof syncRuns.$inferSelect) {
       title.append(state);
       item.append(
         title,
-        detailLine('Path', failure.destinationKey),
+        detailLine(failure.destinationKey === '__sync_run__' ? 'Scope' : 'Path', failure.destinationKey === '__sync_run__' ? 'Entire sync run' : failure.destinationKey),
         detailLine('Error', `${failure.failureCode}${failure.httpStatus ? ` (HTTP ${failure.httpStatus})` : ''}: ${failure.errorMessage}`),
         detailLine('Retry', failure.retryable ? 'Automatic retry is available' : 'Not retryable'),
       );
@@ -263,7 +263,11 @@ function progressFor(run: typeof syncRuns.$inferSelect) {
   };
   events.onmessage = (event) => {
     const payload = JSON.parse(event.data) as { runs?: Array<{ id: string; status: string; filesDiscovered: number; filesUploaded: number; filesSkipped: number; filesFailed: number; createdAt?: string; errorSummary?: string | null }>; run?: { id: string; status: string; filesDiscovered: number; filesUploaded: number; filesSkipped: number; filesFailed: number; createdAt?: string; errorSummary?: string | null } };
-    payload.runs?.forEach((run) => updateRunCard(run));
+    payload.runs?.forEach((run) => {
+      updateRunCard(run);
+      const card = document.querySelector<HTMLElement>(`[data-run-card="${run.id}"]`);
+      if (card?.matches('details[open]')) scheduleFailuresRefresh(card);
+    });
     if (payload.run) {
       updateRunCard(payload.run);
       const card = document.querySelector<HTMLElement>(`[data-run-card="${payload.run.id}"]`);
