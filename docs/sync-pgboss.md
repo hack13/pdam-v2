@@ -37,7 +37,7 @@ The worker must be supervised by Docker Compose, systemd, Kubernetes, or another
 
 The protected `/api/sync/scheduler` endpoint remains available as a manual/admin trigger for operational recovery, but it is not part of the normal automated-backup path.
 
-pg-boss owns durable queue state, retry/backoff, heartbeats, expiration, and cancellation. Destination jobs have a 48-hour expiry and five retries. TailCache's `sync_runs` and `sync_items` tables remain the user-facing audit and per-file progress records. Nextcloud transfers persist their upload session and transferred byte count, so a worker retry can resume already-uploaded chunks.
+pg-boss owns durable queue state, retry/backoff, heartbeats, expiration, and cancellation. Destination jobs use pg-boss's supported 24-hour maximum expiry and five retries. TailCache's `sync_runs` and `sync_items` tables remain the user-facing audit and per-file progress records. Nextcloud transfers persist their upload session and transferred byte count, so a worker retry can resume already-uploaded chunks.
 
 ## Nextcloud destinations
 
