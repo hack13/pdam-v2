@@ -179,10 +179,17 @@ function progressFor(run: typeof syncRuns.$inferSelect) {
     return line;
   }
 
-  function renderFailures(card: HTMLElement, failures: Failure[]) {
+  function renderFailures(card: HTMLElement, failures: Failure[], diagnosticsAvailable = true) {
     const container = card.querySelector<HTMLElement>('[data-run-failures]');
     if (!container) return;
     container.replaceChildren();
+    if (!diagnosticsAvailable) {
+      const notice = document.createElement('p');
+      notice.className = 'rounded-lg border border-amber-400/15 bg-amber-400/[0.06] p-3 text-sm text-amber-200';
+      notice.textContent = 'Failure details will appear after the pending database migration is applied.';
+      container.append(notice);
+      return;
+    }
     if (failures.length === 0) return;
 
     const heading = document.createElement('h3');
@@ -219,8 +226,8 @@ function progressFor(run: typeof syncRuns.$inferSelect) {
     try {
       const response = await fetch(`/api/sync/runs/${runId}`);
       if (!response.ok) return;
-      const payload = await response.json() as { failures?: Failure[] };
-      renderFailures(card, payload.failures ?? []);
+      const payload = await response.json() as { failures?: Failure[]; diagnosticsAvailable?: boolean };
+      renderFailures(card, payload.failures ?? [], payload.diagnosticsAvailable !== false);
     } catch {
       // The existing run summary remains available if this optional detail load fails.
     }
