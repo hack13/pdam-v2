@@ -27,6 +27,24 @@ export function findConflictingSyncPaths<T extends { path: string; sha256: strin
   return [...byPath.values()].filter((group) => new Set(group.map((item) => item.sha256)).size > 1);
 }
 
+function appendContentHash(path: string, sha256: string) {
+  const separator = path.lastIndexOf('/');
+  const directory = path.slice(0, separator + 1);
+  const fileName = path.slice(separator + 1);
+  const extensionAt = fileName.lastIndexOf('.');
+  const stem = extensionAt > 0 ? fileName.slice(0, extensionAt) : fileName;
+  const extension = extensionAt > 0 ? fileName.slice(extensionAt) : '';
+  return `${directory}${stem}--${sha256.slice(0, 12)}${extension}`;
+}
+
+/** Keep normal exports readable while making rare filename collisions safe. */
+export function disambiguateSyncPaths<T extends { path: string; sha256: string }>(items: T[]): T[] {
+  const collidingPaths = new Set(findConflictingSyncPaths(items).map((group) => group[0].path));
+  return items.map((item) => collidingPaths.has(item.path)
+    ? { ...item, path: appendContentHash(item.path, item.sha256) }
+    : item) as T[];
+}
+
 function encodeCursor(date: Date, id: string) {
   return Buffer.from(JSON.stringify({ t: date.toISOString(), id })).toString('base64url');
 }
@@ -84,7 +102,7 @@ export async function buildSyncManifest(userId: string, cursor: string | null = 
       releaseNotes: version.releaseNotes,
       publishedAt: version.publishedAt?.toISOString() ?? null,
       createdAt: version.createdAt.toISOString(),
-      files: (filesByVersion.get(version.id) ?? []).flatMap((file) => {
+      files: disambiguateSyncPaths((filesByVersion.get(version.id) ?? []).flatMap((file) => {
         const blob = blobsById.get(file.blobId);
         if (!blob) return [];
         return [{
@@ -99,7 +117,7 @@ export async function buildSyncManifest(userId: string, cursor: string | null = 
           versionId: version.id,
           downloadUrl: `/api/sync/files/${blob.id}`,
         }];
-      }),
+      })),
     })),
   }));
   const newest = ownedProducts.at(-1);

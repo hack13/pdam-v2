@@ -45,4 +45,18 @@ describe('sync failure diagnostics', () => {
     expect(set).toHaveBeenCalledWith(expect.objectContaining({ status: 'recovered' }));
     expect(where).toHaveBeenCalledTimes(1);
   });
+
+  it('does not let unavailable diagnostic storage fail the backup', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    onConflictDoUpdate.mockRejectedValueOnce(new Error('relation "sync_run_failures" does not exist'));
+    where.mockRejectedValueOnce(new Error('relation "sync_run_failures" does not exist'));
+
+    await expect(recordSyncFailure({
+      runId: 'run-1', userId: 'user-1', itemKind: 'metadata', itemName: 'Archive.html', destinationKey: 'Archive.html',
+      errorMessage: 'Upload failed', failureCode: 'DESTINATION_PROTOCOL', httpStatus: null, retryable: false,
+    })).resolves.toBe(false);
+    await expect(resolveSyncFailure('run-1', 'Archive.html')).resolves.toBe(false);
+    expect(errorSpy).toHaveBeenCalledTimes(2);
+    errorSpy.mockRestore();
+  });
 });
