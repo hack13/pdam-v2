@@ -5,6 +5,8 @@ import { syncRunFailures, syncRuns } from '../../../../db/schema';
 import { requireAuth, json, jsonError } from '../../../../lib/api-helpers';
 import { cancelQueuedSync, getSyncJobState } from '../../../../lib/sync-queue';
 
+let failuresTableUnavailable = false;
+
 export const DELETE: APIRoute = async (context) => {
   const auth = await requireAuth(context);
   if (auth instanceof Response) return auth;
@@ -27,9 +29,19 @@ export const GET: APIRoute = async (context) => {
   if (!runId) return jsonError('Run ID required');
   const run = await db.query.syncRuns.findFirst({ where: and(eq(syncRuns.id, runId), eq(syncRuns.userId, auth.user.id)) });
   if (!run) return jsonError('Sync run not found', 404);
-  const failures = await db.query.syncRunFailures.findMany({
-    where: and(eq(syncRunFailures.runId, run.id), eq(syncRunFailures.userId, auth.user.id)),
-    orderBy: [desc(syncRunFailures.lastFailedAt)],
-  });
-  return json({ run, job: await getSyncJobState(run), failures });
+  let failures: typeof syncRunFailures.$inferSelect[] = [];
+  if (!failuresTableUnavailable) {
+    try {
+      failures = await db.query.syncRunFailures.findMany({
+        where: and(eq(syncRunFailures.runId, run.id), eq(syncRunFailures.userId, auth.user.id)),
+        orderBy: [desc(syncRunFailures.lastFailedAt)],
+      });
+    } catch (error) {
+      const details = error as { cause?: { code?: string }; message?: string };
+      if (details.cause?.code !== '42P01' && !details.message?.includes('sync_run_failures')) throw error;
+      failuresTableUnavailable = true;
+      console.warn('[sync-runs] sync_run_failures is unavailable; run migration 0018_sync_run_failures');
+    }
+  }
+  return json({ run, job: await getSyncJobState(run), failures, diagnosticsAvailable: !failuresTableUnavailable });
 };

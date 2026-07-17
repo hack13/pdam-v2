@@ -47,7 +47,7 @@ describe('sync failure diagnostics', () => {
   });
 
   it('does not let unavailable diagnostic storage fail the backup', async () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const warningSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     onConflictDoUpdate.mockRejectedValueOnce(new Error('relation "sync_run_failures" does not exist'));
     where.mockRejectedValueOnce(new Error('relation "sync_run_failures" does not exist'));
 
@@ -56,7 +56,7 @@ describe('sync failure diagnostics', () => {
       errorMessage: 'Upload failed', failureCode: 'DESTINATION_PROTOCOL', httpStatus: null, retryable: false,
     })).resolves.toBe(false);
     await expect(resolveSyncFailure('run-1', 'Archive.html')).resolves.toBe(false);
-    expect(errorSpy).toHaveBeenCalledTimes(2);
-    errorSpy.mockRestore();
+    expect(warningSpy).toHaveBeenCalledTimes(1);
+    warningSpy.mockRestore();
   });
 });
