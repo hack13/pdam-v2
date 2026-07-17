@@ -22,9 +22,10 @@ const activeStatuses = ['queued', 'running', 'retrying', 'cancellation_requested
 function progressFor(run: typeof syncRuns.$inferSelect) {
   const processed = run.filesUploaded + run.filesSkipped + run.filesFailed;
   const percent = run.filesDiscovered > 0 ? Math.min(100, Math.round((processed / run.filesDiscovered) * 100)) : 0;
+  const workerStale = run.status === 'queued' && Date.now() - run.createdAt.getTime() > 120_000;
   const label = run.filesDiscovered > 0
     ? `${processed} of ${run.filesDiscovered} files processed`
-    : run.status === 'queued' ? 'Waiting for a worker…' : 'Preparing sync…';
+    : run.status === 'queued' ? (workerStale ? 'Worker may be offline — this job has waited over two minutes.' : 'Awaiting worker…') : 'Preparing sync…';
   return { processed, percent, label };
 }
 ---
@@ -89,7 +90,7 @@ function progressFor(run: typeof syncRuns.$inferSelect) {
                 </summary>
                 {(run.errorSummary || run.filesFailed > 0) && (
                   <div data-run-error class="mt-4 rounded-lg border border-red-400/15 bg-red-400/[0.06] p-3 text-sm text-red-200">
-                    <p>{run.errorSummary ?? `${run.filesFailed} file(s) failed`}</p>
+                    <p>{run.failureCode ? `${run.failureCode}: ` : ''}{run.errorSummary ?? `${run.filesFailed} file(s) failed`}</p>
                     <p class="mt-2 text-xs text-red-300/70">Run ID: {run.id}</p>
                   </div>
                 )}
@@ -131,7 +132,7 @@ function progressFor(run: typeof syncRuns.$inferSelect) {
     return ['bg-red-400/10', 'text-red-300'];
   }
 
-  function updateRunCard(run: { id: string; status: string; filesDiscovered: number; filesUploaded: number; filesSkipped: number; filesFailed: number; errorSummary?: string | null }) {
+  function updateRunCard(run: { id: string; status: string; filesDiscovered: number; filesUploaded: number; filesSkipped: number; filesFailed: number; createdAt?: string; errorSummary?: string | null }) {
     const card = document.querySelector<HTMLElement>(`[data-run-card="${run.id}"]`);
     if (!card) return;
     const processed = run.filesUploaded + run.filesSkipped + run.filesFailed;
@@ -146,7 +147,8 @@ function progressFor(run: typeof syncRuns.$inferSelect) {
       status.textContent = run.status === 'cancellation_requested' ? 'stopping' : run.status;
     }
     if (progress) progress.style.width = `${percent}%`;
-    if (label) label.textContent = run.filesDiscovered > 0 ? `${processed} of ${run.filesDiscovered} files processed · ${run.filesUploaded} uploaded · ${run.filesFailed} failed` : run.status === 'queued' ? 'Waiting for a worker…' : 'Preparing sync…';
+    const staleWorker = run.status === 'queued' && run.createdAt && Date.now() - new Date(run.createdAt).getTime() > 120_000;
+    if (label) label.textContent = run.filesDiscovered > 0 ? `${processed} of ${run.filesDiscovered} files processed · ${run.filesUploaded} uploaded · ${run.filesFailed} failed` : run.status === 'queued' ? (staleWorker ? 'Worker may be offline — this job has waited over two minutes.' : 'Awaiting worker…') : 'Preparing sync…';
     if (cancel) cancel.classList.toggle('hidden', !['running', 'queued', 'retrying'].includes(run.status));
     card.dataset.active = activeStatuses.includes(run.status) ? 'true' : 'false';
   }
@@ -171,7 +173,7 @@ function progressFor(run: typeof syncRuns.$inferSelect) {
     if (refreshState) refreshState.textContent = 'Live updates';
   };
   events.onmessage = (event) => {
-    const payload = JSON.parse(event.data) as { runs?: Array<{ id: string; status: string; filesDiscovered: number; filesUploaded: number; filesSkipped: number; filesFailed: number; errorSummary?: string | null }>; run?: { id: string; status: string; filesDiscovered: number; filesUploaded: number; filesSkipped: number; filesFailed: number; errorSummary?: string | null } };
+    const payload = JSON.parse(event.data) as { runs?: Array<{ id: string; status: string; filesDiscovered: number; filesUploaded: number; filesSkipped: number; filesFailed: number; createdAt?: string; errorSummary?: string | null }>; run?: { id: string; status: string; filesDiscovered: number; filesUploaded: number; filesSkipped: number; filesFailed: number; createdAt?: string; errorSummary?: string | null } };
     payload.runs?.forEach(updateRunCard);
     if (payload.run) updateRunCard(payload.run);
   };

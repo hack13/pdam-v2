@@ -19,6 +19,8 @@ interface ImportMetaEnv {
   readonly UPLOADS_DIR?: string;
   readonly ADMIN_EMAILS?: string;
   readonly SYNC_WORKER_SECRET?: string;
+  readonly SYNC_WORKER_CONCURRENCY?: string;
+  readonly UPLOAD_PROMOTION_CONCURRENCY?: string;
 }
 
 interface ImportMeta {

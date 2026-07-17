@@ -10,10 +10,11 @@ import { promotePendingUpload } from '../src/lib/upload-promotion-service';
 import { pendingUploads } from '../src/db/schema';
 
 const boss = await getSyncBoss();
-const concurrency = Math.max(1, Number(process.env.SYNC_WORKER_CONCURRENCY ?? 2));
-console.info('[sync-worker] started', { queues: [SYNC_QUEUE, SYNC_SCHEDULER_QUEUE, UPLOAD_PROMOTION_QUEUE], concurrency });
+const syncConcurrency = Math.max(1, Number(process.env.SYNC_WORKER_CONCURRENCY ?? 1));
+const uploadPromotionConcurrency = Math.max(1, Number(process.env.UPLOAD_PROMOTION_CONCURRENCY ?? 2));
+console.info('[sync-worker] started', { queues: [SYNC_QUEUE, SYNC_SCHEDULER_QUEUE, UPLOAD_PROMOTION_QUEUE], syncConcurrency, uploadPromotionConcurrency });
 
-await boss.work(UPLOAD_PROMOTION_QUEUE, { includeMetadata: true, localConcurrency: concurrency, groupConcurrency: 1, pollingIntervalSeconds: 2 }, async ([job]) => {
+await boss.work(UPLOAD_PROMOTION_QUEUE, { includeMetadata: true, localConcurrency: uploadPromotionConcurrency, groupConcurrency: 1, pollingIntervalSeconds: 2 }, async ([job]) => {
   const data = job.data as UploadPromotionJobData;
   try {
     return await promotePendingUpload(data.sessionId);
@@ -34,7 +35,7 @@ await boss.work(SYNC_SCHEDULER_QUEUE, { includeMetadata: true, localConcurrency:
   return { queued: results.length - failed, failed };
 });
 
-await boss.work(SYNC_QUEUE, { includeMetadata: true, localConcurrency: concurrency, groupConcurrency: 1, pollingIntervalSeconds: 2 }, async ([job]) => {
+await boss.work(SYNC_QUEUE, { includeMetadata: true, localConcurrency: syncConcurrency, groupConcurrency: 1, pollingIntervalSeconds: 2 }, async ([job]) => {
   const data = job.data as SyncJobData;
   console.info('[sync-worker] job started', { jobId: job.id, runId: data.runId, connectionId: data.connectionId, retryCount: job.retryCount });
   await db.update(syncRuns).set({ status: 'running', startedAt: new Date() }).where(eq(syncRuns.id, data.runId));

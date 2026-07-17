@@ -14,7 +14,8 @@ function formatBytes(bytes: number) {
   return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`;
 }
 
-function filePath(asset: { slug: string }, version: { version: string }, file: { fileName: string }) {
+function filePath(asset: { slug: string }, version: { version: string }, file: { fileName: string; path?: string }) {
+  if (file.path) return file.path;
   const safeName = file.fileName.replace(/[\\/]/g, '_').replace(/^\.+$/, '_');
   return `assets/${asset.slug}/versions/${version.version}/files/${safeName}`;
 }

@@ -120,6 +120,13 @@
       "when": 1784030400009,
       "tag": "0016_pending_upload_promotions",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1784275200000,
+      "tag": "0017_nextcloud_sync_resilience",
+      "breakpoints": true
     }
   ]
 }

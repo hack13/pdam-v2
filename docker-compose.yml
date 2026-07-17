@@ -53,6 +53,7 @@ services:
         condition: service_completed_successfully
     networks:
       - internal
+    restart: unless-stopped
 
   worker:
     build: .
@@ -63,6 +64,10 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:password@db:5432/pdam
       UPLOADS_DIR: /app/uploads
+      # Keep destination transfers bounded; tune only after observing memory
+      # and Nextcloud behaviour in production.
+      SYNC_WORKER_CONCURRENCY: ${SYNC_WORKER_CONCURRENCY:-1}
+      UPLOAD_PROMOTION_CONCURRENCY: ${UPLOAD_PROMOTION_CONCURRENCY:-2}
     volumes:
       - uploads:/app/uploads
     depends_on:
@@ -74,6 +79,8 @@ services:
         condition: service_started
     networks:
       - internal
+    restart: unless-stopped
+    stop_grace_period: 25m
 
 networks:
   internal:

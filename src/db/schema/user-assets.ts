@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, bigint, uuid, boolean, integer, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, bigint, uuid, boolean, integer, jsonb, index, uniqueIndex } from 'drizzle-orm/pg-core';
 import { users } from './auth';
 import { globalFileBlobs } from './global-storage';
 import { products, productVersions, marketplaceSources } from './marketplace';
@@ -64,6 +64,8 @@ export const syncRuns = pgTable('sync_runs', {
   manifestId: text('manifest_id'),
   cursor: text('cursor'),
   errorSummary: text('error_summary'),
+  failureCode: text('failure_code'),
+  failureDetails: jsonb('failure_details').$type<Record<string, string | number | boolean | null>>(),
   cancelRequestedAt: timestamp('cancel_requested_at'),
   pgBossJobId: text('pgboss_job_id'),
   pgBossQueue: text('pgboss_queue'),
@@ -89,6 +91,10 @@ export const syncItems = pgTable('sync_items', {
   etag: text('etag'),
   retryCount: integer('retry_count').notNull().default(0),
   lastError: text('last_error'),
+  transferSessionId: text('transfer_session_id'),
+  bytesTransferred: bigint('bytes_transferred', { mode: 'number' }).notNull().default(0),
+  lastHttpStatus: integer('last_http_status'),
+  lastAttemptedAt: timestamp('last_attempted_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (table) => [
   index('sync_items_run_idx').on(table.runId),
