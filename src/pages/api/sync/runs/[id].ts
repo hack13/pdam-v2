@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
-import { and, eq, isNull, ne } from 'drizzle-orm';
+import { and, desc, eq, isNull, ne } from 'drizzle-orm';
 import { db } from '../../../../db';
-import { syncRuns } from '../../../../db/schema';
+import { syncRunFailures, syncRuns } from '../../../../db/schema';
 import { requireAuth, json, jsonError } from '../../../../lib/api-helpers';
 import { cancelQueuedSync, getSyncJobState } from '../../../../lib/sync-queue';
 
@@ -27,5 +27,9 @@ export const GET: APIRoute = async (context) => {
   if (!runId) return jsonError('Run ID required');
   const run = await db.query.syncRuns.findFirst({ where: and(eq(syncRuns.id, runId), eq(syncRuns.userId, auth.user.id)) });
   if (!run) return jsonError('Sync run not found', 404);
-  return json({ run, job: await getSyncJobState(run) });
+  const failures = await db.query.syncRunFailures.findMany({
+    where: and(eq(syncRunFailures.runId, run.id), eq(syncRunFailures.userId, auth.user.id)),
+    orderBy: [desc(syncRunFailures.lastFailedAt)],
+  });
+  return json({ run, job: await getSyncJobState(run), failures });
 };

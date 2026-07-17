@@ -5,11 +5,11 @@ import { syncItems, syncRuns, userAssetFiles, userStorageConnections } from '../
 import { getFileSourceByBlobId, getThumbnailByKey } from './file-pipeline';
 import { buildSyncManifest } from './sync-manifest';
 import { createSyncDestination, SyncDestinationError } from './sync-destinations';
+import { recordSyncFailure, resolveSyncFailure } from './sync-diagnostics';
 import { notifySyncRunChanged } from './sync-events';
 import { buildArchiveHtml } from './archive-html';
 
 const activeSyncs = new Map<string, AbortController>();
-const V2_ROOT = 'tailcache/v2';
 
 class SyncCancelledError extends Error { constructor() { super('Sync cancelled by user'); } }
 
@@ -57,15 +57,33 @@ export async function runSync(connectionId: string, options?: { userId?: string;
     console.info('[sync] manifest ready', { runId: run.id, connectionId, files: files.length });
 
     let uploaded = 0, skipped = 0, failed = 0, bytes = 0;
-    let lastFailure: ReturnType<typeof diagnostics> | null = null;
+    const failureState: { latest: ReturnType<typeof diagnostics> | null } = { latest: null };
+    const trackFailure = async (input: { itemKind: 'file' | 'thumbnail' | 'metadata'; itemName: string; destinationKey: string; error: unknown }) => {
+      const diagnostic = diagnostics(input.error, connection.providerType);
+      failureState.latest = diagnostic;
+      await recordSyncFailure({
+        runId: run.id,
+        userId: connection.userId,
+        itemKind: input.itemKind,
+        itemName: input.itemName,
+        destinationKey: input.destinationKey,
+        errorMessage: input.error instanceof Error ? input.error.message : 'Upload failed',
+        failureCode: diagnostic.code,
+        httpStatus: diagnostic.details.httpStatus,
+        retryable: diagnostic.details.retryable,
+      });
+      await notifySyncRunChanged(run.id);
+      return diagnostic;
+    };
     for (const file of files) {
       if (options?.signal?.aborted || controller.signal.aborted || await cancellationRequested(run.id)) throw new SyncCancelledError();
-      const destinationKey = `${V2_ROOT}/${file.path}`;
+      const destinationKey = file.path;
       const completed = await db.query.syncItems.findFirst({
         where: and(eq(syncItems.connectionId, connectionId), eq(syncItems.blobId, file.blobId), eq(syncItems.contentHash, file.sha256), eq(syncItems.destinationKey, destinationKey), eq(syncItems.status, 'completed')),
       });
       if (completed && await destination.exists(destinationKey)) {
         skipped++;
+        await resolveSyncFailure(run.id, destinationKey);
         await updateRunProgress(run.id, { filesDiscovered: files.length, filesUploaded: uploaded, filesSkipped: skipped, filesFailed: failed, bytesUploaded: bytes });
         continue;
       }
@@ -93,15 +111,16 @@ export async function runSync(connectionId: string, options?: { userId?: string;
         });
         await db.update(syncItems).set({ status: 'completed', remoteId: result.remoteId ?? null, etag: result.etag ?? null, transferSessionId: null, bytesTransferred: file.byteSize, lastHttpStatus: null }).where(eq(syncItems.id, item.id));
         await db.update(userAssetFiles).set({ isBackedUp: true }).where(and(eq(userAssetFiles.userId, connection.userId), eq(userAssetFiles.blobId, file.blobId)));
+        await resolveSyncFailure(run.id, destinationKey);
         uploaded++; bytes += file.byteSize;
         await updateRunProgress(run.id, { filesDiscovered: files.length, filesUploaded: uploaded, filesSkipped: skipped, filesFailed: failed, bytesUploaded: bytes });
       } catch (error) {
         if (options?.signal?.aborted || controller.signal.aborted || await cancellationRequested(run.id)) throw new SyncCancelledError();
         failed++;
         const message = error instanceof Error ? error.message : 'Upload failed';
-        lastFailure = diagnostics(error, connection.providerType);
-        console.error('[sync] file failed', { runId: run.id, connectionId, blobId: file.blobId, providerType: connection.providerType, failureCode: lastFailure.code, httpStatus: lastFailure.details.httpStatus, error: message });
-        await db.update(syncItems).set({ status: 'failed', retryCount: item.retryCount, lastError: message, lastHttpStatus: lastFailure.details.httpStatus, lastAttemptedAt: new Date() }).where(eq(syncItems.id, item.id));
+        const failure = await trackFailure({ itemKind: 'file', itemName: file.fileName, destinationKey, error });
+        console.error('[sync] file failed', { runId: run.id, connectionId, blobId: file.blobId, providerType: connection.providerType, failureCode: failure.code, httpStatus: failure.details.httpStatus, error: message });
+        await db.update(syncItems).set({ status: 'failed', retryCount: item.retryCount, lastError: message, lastHttpStatus: failure.details.httpStatus, lastAttemptedAt: new Date() }).where(eq(syncItems.id, item.id));
         await updateRunProgress(run.id, { filesDiscovered: files.length, filesUploaded: uploaded, filesSkipped: skipped, filesFailed: failed, bytesUploaded: bytes });
       }
     }
@@ -110,27 +129,56 @@ export async function runSync(connectionId: string, options?: { userId?: string;
       if (!asset.thumbnail) continue;
       if (options?.signal?.aborted || controller.signal.aborted || await cancellationRequested(run.id)) throw new SyncCancelledError();
       const thumbnailData = await getThumbnailByKey(asset.thumbnail.storageKey);
-      if (!thumbnailData) { failed++; console.error('[sync] thumbnail unavailable', { runId: run.id, assetId: asset.id }); continue; }
+      const destinationKey = asset.thumbnailPath!;
+      if (!thumbnailData) {
+        failed++;
+        const error = new SyncDestinationError('Source thumbnail is unavailable', 'SOURCE_UNAVAILABLE');
+        const failure = await trackFailure({ itemKind: 'thumbnail', itemName: `${asset.title} thumbnail`, destinationKey, error });
+        console.error('[sync] thumbnail unavailable', { runId: run.id, assetId: asset.id, failureCode: failure.code });
+        continue;
+      }
       try {
-        await destination.putObject({ destinationKey: `${V2_ROOT}/${asset.thumbnailPath!}`, body: thumbnailData, contentType: asset.thumbnail.mimeType, sha256: hash(thumbnailData), signal: options?.signal ?? controller.signal });
+        await destination.putObject({ destinationKey, body: thumbnailData, contentType: asset.thumbnail.mimeType, sha256: hash(thumbnailData), signal: options?.signal ?? controller.signal });
+        await resolveSyncFailure(run.id, destinationKey);
       } catch (error) {
-        failed++; lastFailure = diagnostics(error, connection.providerType);
-        console.error('[sync] thumbnail failed', { runId: run.id, assetId: asset.id, providerType: connection.providerType, failureCode: lastFailure.code, error: error instanceof Error ? error.message : 'Upload failed' });
+        failed++;
+        const failure = await trackFailure({ itemKind: 'thumbnail', itemName: `${asset.title} thumbnail`, destinationKey, error });
+        console.error('[sync] thumbnail failed', { runId: run.id, assetId: asset.id, providerType: connection.providerType, failureCode: failure.code, error: error instanceof Error ? error.message : 'Upload failed' });
       }
     }
 
-    // Metadata is published only after every immutable object is available.
+    // Archive.html remains useful even for a partial backup; manifests only
+    // advance after every immutable object is available.
+    const archiveBody = Buffer.from(buildArchiveHtml(manifest));
+    try {
+      await destination.putObject({ destinationKey: 'Archive.html', body: archiveBody, contentType: 'text/html; charset=utf-8', sha256: hash(archiveBody), signal: options?.signal ?? controller.signal, overwrite: true });
+      await resolveSyncFailure(run.id, 'Archive.html');
+    } catch (error) {
+      failed++;
+      const failure = await trackFailure({ itemKind: 'metadata', itemName: 'Archive.html', destinationKey: 'Archive.html', error });
+      console.error('[sync] archive failed', { runId: run.id, connectionId, providerType: connection.providerType, failureCode: failure.code, error: error instanceof Error ? error.message : 'Upload failed' });
+    }
+
     if (failed === 0) {
       const manifestBody = Buffer.from(JSON.stringify(manifest, null, 2));
       const manifestHash = hash(manifestBody);
-      const archiveBody = Buffer.from(buildArchiveHtml(manifest));
-      await destination.putObject({ destinationKey: `${V2_ROOT}/manifest/v1/${manifest.generatedAt.replace(/[^0-9]/g, '')}.json`, body: manifestBody, contentType: 'application/json', sha256: manifestHash, signal: options?.signal ?? controller.signal });
-      await destination.putObject({ destinationKey: `${V2_ROOT}/latest-manifest.json`, body: manifestBody, contentType: 'application/json', sha256: manifestHash, signal: options?.signal ?? controller.signal, overwrite: true });
-      await destination.putObject({ destinationKey: `${V2_ROOT}/archive.html`, body: archiveBody, contentType: 'text/html; charset=utf-8', sha256: hash(archiveBody), signal: options?.signal ?? controller.signal, overwrite: true });
+      const manifestKey = `manifest/v1/${manifest.generatedAt.replace(/[^0-9]/g, '')}.json`;
+      let metadataKey = manifestKey;
+      try {
+        await destination.putObject({ destinationKey: manifestKey, body: manifestBody, contentType: 'application/json', sha256: manifestHash, signal: options?.signal ?? controller.signal });
+        await resolveSyncFailure(run.id, manifestKey);
+        metadataKey = 'latest-manifest.json';
+        await destination.putObject({ destinationKey: 'latest-manifest.json', body: manifestBody, contentType: 'application/json', sha256: manifestHash, signal: options?.signal ?? controller.signal, overwrite: true });
+        await resolveSyncFailure(run.id, 'latest-manifest.json');
+      } catch (error) {
+        failed++;
+        const failure = await trackFailure({ itemKind: 'metadata', itemName: metadataKey, destinationKey: metadataKey, error });
+        console.error('[sync] manifest failed', { runId: run.id, connectionId, providerType: connection.providerType, failureCode: failure.code, error: error instanceof Error ? error.message : 'Upload failed' });
+      }
     }
 
     const status = failed ? (uploaded || skipped ? 'partial' : 'failed') : 'completed';
-    await db.update(syncRuns).set({ status, filesUploaded: uploaded, filesSkipped: skipped, filesFailed: failed, bytesUploaded: bytes, completedAt: new Date(), errorSummary: failed ? `${failed} file(s) failed` : null, failureCode: lastFailure?.code ?? null, failureDetails: lastFailure?.details ?? null }).where(eq(syncRuns.id, run.id));
+    await db.update(syncRuns).set({ status, filesUploaded: uploaded, filesSkipped: skipped, filesFailed: failed, bytesUploaded: bytes, completedAt: new Date(), errorSummary: failed ? `${failed} file(s) failed` : null, failureCode: failureState.latest?.code ?? null, failureDetails: failureState.latest?.details ?? null }).where(eq(syncRuns.id, run.id));
     await notifySyncRunChanged(run.id);
     await db.update(userStorageConnections).set({ lastSuccessfulSyncAt: failed ? connection.lastSuccessfulSyncAt : new Date(), lastError: failed ? `${failed} file(s) failed` : null, errorCount: failed ? connection.errorCount + 1 : 0, updatedAt: new Date() }).where(eq(userStorageConnections.id, connectionId));
     console.info('[sync] run finished', { runId: run.id, connectionId, status, filesUploaded: uploaded, filesSkipped: skipped, filesFailed: failed, bytesUploaded: bytes });
@@ -144,6 +192,17 @@ export async function runSync(connectionId: string, options?: { userId?: string;
       return { runId: run.id, status: 'cancelled', filesDiscovered: 0, filesUploaded: 0, filesSkipped: 0, filesFailed: 0, bytesUploaded: 0, nextCursor: null };
     }
     const failure = diagnostics(error, connection.providerType);
+    await recordSyncFailure({
+      runId: run.id,
+      userId: connection.userId,
+      itemKind: 'metadata',
+      itemName: 'Sync run',
+      destinationKey: '__sync_run__',
+      errorMessage: message,
+      failureCode: failure.code,
+      httpStatus: failure.details.httpStatus,
+      retryable: failure.details.retryable,
+    });
     console.error('[sync] run failed', { runId: run.id, connectionId, providerType: connection.providerType, failureCode: failure.code, httpStatus: failure.details.httpStatus, error: message });
     await db.update(syncRuns).set({ status: 'failed', completedAt: new Date(), errorSummary: message, failureCode: failure.code, failureDetails: failure.details }).where(eq(syncRuns.id, run.id));
     await notifySyncRunChanged(run.id);

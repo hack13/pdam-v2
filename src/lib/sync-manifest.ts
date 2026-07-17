@@ -2,10 +2,18 @@ import { and, eq, gt, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import { fileThumbnails, globalFileBlobs, productVersions, products, userAssetFiles } from '../db/schema';
 
-export const SYNC_MANIFEST_VERSION = 1;
+export const SYNC_MANIFEST_VERSION = 2;
 
-function safeFileName(fileName: string) {
+export function safeSyncFileName(fileName: string) {
   return fileName.replace(/[\\/]/g, '_').replace(/^\.+$/, '_');
+}
+
+export function syncAssetFilePath(assetSlug: string, version: string, fileName: string) {
+  return `assets/${assetSlug}/${version}/${safeSyncFileName(fileName)}`;
+}
+
+export function syncThumbnailPath(thumbnailId: string) {
+  return `archive-thumbs/${thumbnailId}.webp`;
 }
 
 function encodeCursor(date: Date, id: string) {
@@ -53,7 +61,7 @@ export async function buildSyncManifest(userId: string, cursor: string | null = 
     descriptionText: product.descriptionText,
     tags: product.tags,
     licenseKey: product.licenseKey,
-    thumbnailPath: thumbnailsById.has(product.thumbnailFileThumbnailId ?? '') ? `assets/${product.slug}/thumbnail.webp` : null,
+    thumbnailPath: thumbnailsById.has(product.thumbnailFileThumbnailId ?? '') ? syncThumbnailPath(product.thumbnailFileThumbnailId!) : null,
     thumbnail: (() => {
       const thumbnail = thumbnailsById.get(product.thumbnailFileThumbnailId ?? '');
       return thumbnail ? { id: thumbnail.id, blobId: thumbnail.blobId, mimeType: thumbnail.mimeType, storageKey: thumbnail.storageKey, downloadUrl: `/api/sync/thumbnails/${thumbnail.id}` } : null;
@@ -73,7 +81,7 @@ export async function buildSyncManifest(userId: string, cursor: string | null = 
           blobId: blob.id,
           sha256: blob.sha256,
           fileName: blob.fileName,
-          path: `assets/${product.slug}/versions/${version.version}/files/${blob.sha256}-${safeFileName(blob.fileName)}`,
+          path: syncAssetFilePath(product.slug, version.version, blob.fileName),
           mimeType: blob.mimeType,
           byteSize: blob.fileSize,
           assetId: product.id,
