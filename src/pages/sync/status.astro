@@ -94,6 +94,7 @@ function progressFor(run: typeof syncRuns.$inferSelect) {
                     <p class="mt-2 text-xs text-red-300/70">Run ID: {run.id}</p>
                   </div>
                 )}
+                <div class="mt-4" data-run-failures aria-live="polite"></div>
               </details>
             );
           })}
@@ -119,6 +120,7 @@ function progressFor(run: typeof syncRuns.$inferSelect) {
   const activeStatuses = ['queued', 'running', 'retrying', 'cancellation_requested'];
   const statusClassNames = ['bg-indigo-400/10', 'text-indigo-300', 'bg-emerald-400/10', 'text-emerald-300', 'bg-amber-400/10', 'text-amber-300', 'bg-zinc-400/10', 'text-zinc-300', 'bg-red-400/10', 'text-red-300'];
   const refreshState = document.querySelector<HTMLElement>('#activity-refresh-state');
+  const failureRefreshTimers = new Map<string, number>();
 
   document.querySelectorAll<HTMLDetailsElement>('[data-activity-detail]').forEach((detail) => {
     detail.open = false;
@@ -153,6 +155,93 @@ function progressFor(run: typeof syncRuns.$inferSelect) {
     card.dataset.active = activeStatuses.includes(run.status) ? 'true' : 'false';
   }
 
+  type Failure = {
+    itemKind: 'file' | 'thumbnail' | 'metadata';
+    itemName: string;
+    destinationKey: string;
+    errorMessage: string;
+    failureCode: string;
+    httpStatus: number | null;
+    retryable: boolean;
+    status: 'failed' | 'recovered';
+    attemptCount: number;
+    lastFailedAt: string;
+    resolvedAt: string | null;
+  };
+
+  function detailLine(label: string, value: string) {
+    const line = document.createElement('p');
+    line.className = 'mt-1 break-all text-xs text-zinc-400';
+    const strong = document.createElement('span');
+    strong.className = 'text-zinc-300';
+    strong.textContent = `${label}: `;
+    line.append(strong, value);
+    return line;
+  }
+
+  function renderFailures(card: HTMLElement, failures: Failure[]) {
+    const container = card.querySelector<HTMLElement>('[data-run-failures]');
+    if (!container) return;
+    container.replaceChildren();
+    if (failures.length === 0) return;
+
+    const heading = document.createElement('h3');
+    heading.className = 'mb-2 text-sm font-medium text-white';
+    heading.textContent = 'Failed items';
+    const list = document.createElement('div');
+    list.className = 'space-y-2';
+    for (const failure of failures) {
+      const item = document.createElement('div');
+      item.className = failure.status === 'recovered'
+        ? 'rounded-lg border border-emerald-400/15 bg-emerald-400/[0.04] p-3'
+        : 'rounded-lg border border-red-400/15 bg-red-400/[0.06] p-3';
+      const title = document.createElement('p');
+      title.className = 'text-sm font-medium text-white';
+      title.textContent = failure.itemName;
+      const state = document.createElement('span');
+      state.className = failure.status === 'recovered' ? 'ml-2 text-xs text-emerald-300' : 'ml-2 text-xs text-red-300';
+      state.textContent = failure.status === 'recovered' ? `recovered after ${failure.attemptCount} failed attempt${failure.attemptCount === 1 ? '' : 's'}` : `${failure.attemptCount} failed attempt${failure.attemptCount === 1 ? '' : 's'}`;
+      title.append(state);
+      item.append(
+        title,
+        detailLine('Path', failure.destinationKey),
+        detailLine('Error', `${failure.failureCode}${failure.httpStatus ? ` (HTTP ${failure.httpStatus})` : ''}: ${failure.errorMessage}`),
+        detailLine('Retry', failure.retryable ? 'Automatic retry is available' : 'Not retryable'),
+      );
+      list.append(item);
+    }
+    container.append(heading, list);
+  }
+
+  async function loadFailures(card: HTMLElement) {
+    const runId = card.dataset.runCard;
+    if (!runId) return;
+    try {
+      const response = await fetch(`/api/sync/runs/${runId}`);
+      if (!response.ok) return;
+      const payload = await response.json() as { failures?: Failure[] };
+      renderFailures(card, payload.failures ?? []);
+    } catch {
+      // The existing run summary remains available if this optional detail load fails.
+    }
+  }
+
+  function scheduleFailuresRefresh(card: HTMLElement) {
+    const runId = card.dataset.runCard;
+    if (!runId || failureRefreshTimers.has(runId)) return;
+    const timer = window.setTimeout(() => {
+      failureRefreshTimers.delete(runId);
+      if (card.matches('details[open]')) void loadFailures(card);
+    }, 1_500);
+    failureRefreshTimers.set(runId, timer);
+  }
+
+  document.querySelectorAll<HTMLDetailsElement>('[data-activity-detail]').forEach((detail) => {
+    detail.addEventListener('toggle', () => {
+      if (detail.open) void loadFailures(detail);
+    });
+  });
+
   document.querySelectorAll<HTMLButtonElement>('[data-cancel-run]').forEach((button) => {
     button.addEventListener('click', async (event) => {
       event.preventDefault();
@@ -174,8 +263,12 @@ function progressFor(run: typeof syncRuns.$inferSelect) {
   };
   events.onmessage = (event) => {
     const payload = JSON.parse(event.data) as { runs?: Array<{ id: string; status: string; filesDiscovered: number; filesUploaded: number; filesSkipped: number; filesFailed: number; createdAt?: string; errorSummary?: string | null }>; run?: { id: string; status: string; filesDiscovered: number; filesUploaded: number; filesSkipped: number; filesFailed: number; createdAt?: string; errorSummary?: string | null } };
-    payload.runs?.forEach(updateRunCard);
-    if (payload.run) updateRunCard(payload.run);
+    payload.runs?.forEach((run) => updateRunCard(run));
+    if (payload.run) {
+      updateRunCard(payload.run);
+      const card = document.querySelector<HTMLElement>(`[data-run-card="${payload.run.id}"]`);
+      if (card?.matches('details[open]')) scheduleFailuresRefresh(card);
+    }
   };
   events.onerror = () => {
     if (refreshState) refreshState.textContent = 'Reconnecting…';

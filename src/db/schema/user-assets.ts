@@ -101,6 +101,31 @@ export const syncItems = pgTable('sync_items', {
   uniqueIndex('sync_items_destination_blob_idx').on(table.connectionId, table.blobId, table.contentHash),
 ]);
 
+/** Durable, user-visible diagnostics for failed objects within a single sync run. */
+export const syncRunFailures = pgTable('sync_run_failures', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  runId: uuid('run_id').notNull().references(() => syncRuns.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  itemKind: text('item_kind').notNull(),
+  itemName: text('item_name').notNull(),
+  destinationKey: text('destination_key').notNull(),
+  errorMessage: text('error_message').notNull(),
+  failureCode: text('failure_code').notNull(),
+  httpStatus: integer('http_status'),
+  retryable: boolean('retryable').notNull().default(false),
+  status: text('status').notNull().default('failed'),
+  attemptCount: integer('attempt_count').notNull().default(1),
+  firstFailedAt: timestamp('first_failed_at').notNull().defaultNow(),
+  lastFailedAt: timestamp('last_failed_at').notNull().defaultNow(),
+  resolvedAt: timestamp('resolved_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => [
+  index('sync_run_failures_run_idx').on(table.runId),
+  index('sync_run_failures_user_idx').on(table.userId),
+  uniqueIndex('sync_run_failures_run_destination_idx').on(table.runId, table.destinationKey),
+]);
+
 export const userLibraryItems = pgTable('user_library_items', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: text('user_id').notNull().references(() => users.id),
@@ -144,3 +169,4 @@ export type SyncToken = typeof syncTokens.$inferSelect;
 export type NewSyncToken = typeof syncTokens.$inferInsert;
 export type SyncRun = typeof syncRuns.$inferSelect;
 export type SyncItem = typeof syncItems.$inferSelect;
+export type SyncRunFailure = typeof syncRunFailures.$inferSelect;
