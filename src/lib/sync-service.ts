@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { db } from '../db';
 import { syncItems, syncRuns, userAssetFiles, userStorageConnections } from '../db/schema';
 import { getFileSourceByBlobId, getThumbnailByKey } from './file-pipeline';
-import { buildSyncManifest, findConflictingSyncPaths } from './sync-manifest';
+import { buildSyncManifest } from './sync-manifest';
 import { createSyncDestination, SyncDestinationError } from './sync-destinations';
 import { recordSyncFailure, resolveSyncFailure } from './sync-diagnostics';
 import { notifySyncRunChanged } from './sync-events';
@@ -74,28 +74,9 @@ export async function runSync(connectionId: string, options?: { userId?: string;
       });
       return diagnostic;
     };
-    const pathConflicts = findConflictingSyncPaths(files);
-    const conflictingPaths = new Set(pathConflicts.map((filesAtPath) => filesAtPath[0].path));
-    for (const filesAtPath of pathConflicts) {
-      const destinationKey = filesAtPath[0].path;
-      failed += filesAtPath.length;
-      const error = new SyncDestinationError('Multiple files with different contents share this backup path', 'REMOTE_CONFLICT', 409);
-      const failure = await trackFailure({
-        itemKind: 'file',
-        itemName: filesAtPath.map((file) => file.fileName).join(', '),
-        destinationKey,
-        error,
-      });
-      console.error('[sync] conflicting file paths', { runId: run.id, connectionId, destinationKey, blobIds: filesAtPath.map((file) => file.blobId), failureCode: failure.code });
-    }
-    if (pathConflicts.length) {
-      await updateRunProgress(run.id, { filesDiscovered: files.length, filesUploaded: uploaded, filesSkipped: skipped, filesFailed: failed, bytesUploaded: bytes });
-    }
-
     for (const file of files) {
       if (options?.signal?.aborted || controller.signal.aborted || await cancellationRequested(run.id)) throw new SyncCancelledError();
       const destinationKey = file.path;
-      if (conflictingPaths.has(destinationKey)) continue;
       const completed = await db.query.syncItems.findFirst({
         where: and(eq(syncItems.connectionId, connectionId), eq(syncItems.blobId, file.blobId), eq(syncItems.contentHash, file.sha256), eq(syncItems.destinationKey, destinationKey), eq(syncItems.status, 'completed')),
       });

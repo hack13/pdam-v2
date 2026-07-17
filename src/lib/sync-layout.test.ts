@@ -4,13 +4,14 @@ let safeSyncFileName: typeof import('./sync-manifest').safeSyncFileName;
 let syncAssetFilePath: typeof import('./sync-manifest').syncAssetFilePath;
 let syncThumbnailPath: typeof import('./sync-manifest').syncThumbnailPath;
 let findConflictingSyncPaths: typeof import('./sync-manifest').findConflictingSyncPaths;
+let disambiguateSyncPaths: typeof import('./sync-manifest').disambiguateSyncPaths;
 let buildArchiveHtml: typeof import('./archive-html').buildArchiveHtml;
 
 beforeAll(async () => {
   // sync-manifest imports the Drizzle client but these path-only tests do not
   // make a database query.
   process.env.DATABASE_URL ??= 'postgresql://postgres:password@127.0.0.1:5432/tailcache_test';
-  ({ safeSyncFileName, syncAssetFilePath, syncThumbnailPath, findConflictingSyncPaths } = await import('./sync-manifest'));
+  ({ safeSyncFileName, syncAssetFilePath, syncThumbnailPath, findConflictingSyncPaths, disambiguateSyncPaths } = await import('./sync-manifest'));
   ({ buildArchiveHtml } = await import('./archive-html'));
 });
 
@@ -26,14 +27,20 @@ describe('backup export layout', () => {
     expect(safeSyncFileName('../private\\notes.txt')).toBe('.._private_notes.txt');
   });
 
-  it('detects same-path files with different contents before a destination can overwrite one', () => {
-    const conflicts = findConflictingSyncPaths([
+  it('keeps colliding filenames distinct with a deterministic content-hash suffix', () => {
+    const inputs = [
       { path: 'assets/neon/v1/guide.pdf', sha256: 'a' },
       { path: 'assets/neon/v1/guide.pdf', sha256: 'b' },
       { path: 'assets/neon/v1/readme.txt', sha256: 'c' },
-    ]);
+    ];
+    const conflicts = findConflictingSyncPaths(inputs);
     expect(conflicts).toHaveLength(1);
     expect(conflicts[0]).toHaveLength(2);
+    expect(disambiguateSyncPaths(inputs).map((item) => item.path)).toEqual([
+      'assets/neon/v1/guide--a.pdf',
+      'assets/neon/v1/guide--b.pdf',
+      'assets/neon/v1/readme.txt',
+    ]);
   });
 
   it('renders Archive.html with links to the corrected root-level layout', () => {
