@@ -63,10 +63,15 @@ function classifyStatus(status: number): SyncDestinationError {
   return new SyncDestinationError(`Destination request failed (${status})`, 'DESTINATION_PROTOCOL', status, [500, 502, 503, 504].includes(status));
 }
 
-function networkError(error: unknown) {
+export function networkError(error: unknown) {
   if (error instanceof SyncDestinationError) return error;
   if (error instanceof Error && error.name === 'AbortError') return new SyncDestinationError('Destination request timed out or was cancelled', 'DESTINATION_NETWORK', undefined, true);
-  return new SyncDestinationError('Destination network request failed', 'DESTINATION_NETWORK', undefined, true);
+  // `fetch` wraps useful transport errors (for example ECONNRESET) in its
+  // `cause`. Keep the safe error code in the Activity diagnostic so users can
+  // distinguish a transient connection reset from a bad destination setting.
+  const cause = error instanceof Error ? error.cause as { code?: unknown } | undefined : undefined;
+  const code = typeof cause?.code === 'string' ? cause.code : null;
+  return new SyncDestinationError(`Destination network request failed${code ? ` (${code})` : ''}`, 'DESTINATION_NETWORK', undefined, true);
 }
 
 async function waitForRetry(response: Response | undefined, attempt: number, signal?: AbortSignal) {
@@ -159,25 +164,35 @@ class WebdavSyncDestination implements SyncDestination {
   }
   async exists(key: string) { const response = await this.request(this.target(key), { method: 'HEAD', headers: this.headers() }); return response.ok; }
   async putObject(input: Parameters<SyncDestination['putObject']>[0]) {
-    if (!input.overwrite && await this.exists(input.destinationKey)) return { remoteId: this.target(input.destinationKey).toString() };
-    await this.ensureCollections(input.destinationKey);
     const target = this.target(input.destinationKey);
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const body = input.body
-        ? new Uint8Array(input.body)
-        : input.source ? await input.source.openRange(0, input.source.byteSize - 1) : null;
-      const length = input.body?.length ?? input.source?.byteSize;
-      if (!body || length == null) throw new SyncDestinationError('Source file is unavailable', 'SOURCE_UNAVAILABLE');
-      const response = await this.request(target, {
-        method: 'PUT',
-        headers: this.headers({ 'Content-Type': input.contentType, 'Content-Length': String(length), ...(input.overwrite ? {} : { 'If-None-Match': '*' }) }),
-        body: body as unknown as BodyInit,
-        ...(input.source && { duplex: 'half' }),
-      } as RequestInit, input.signal);
-      if (response.ok) return { remoteId: target.toString(), etag: response.headers.get('etag') ?? undefined };
-      const error = classifyStatus(response.status);
-      if (!error.retryable || attempt === 2) throw error;
-      await waitForRetry(response, attempt, input.signal);
+    // Generated objects (Archive.html, thumbnails, and manifests) use this
+    // path. Retrying the complete sequence matters: a dropped connection can
+    // occur during HEAD or MKCOL before the PUT loop used to begin.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        if (!input.overwrite && await this.exists(input.destinationKey)) return { remoteId: target.toString() };
+        await this.ensureCollections(input.destinationKey);
+        const body = input.body
+          ? new Uint8Array(input.body)
+          : input.source ? await input.source.openRange(0, input.source.byteSize - 1) : null;
+        const length = input.body?.length ?? input.source?.byteSize;
+        if (!body || length == null) throw new SyncDestinationError('Source file is unavailable', 'SOURCE_UNAVAILABLE');
+        const response = await this.request(target, {
+          method: 'PUT',
+          headers: this.headers({ 'Content-Type': input.contentType, 'Content-Length': String(length), ...(input.overwrite ? {} : { 'If-None-Match': '*' }) }),
+          body: body as unknown as BodyInit,
+          ...(input.source && { duplex: 'half' }),
+        } as RequestInit, input.signal);
+        if (response.ok) return { remoteId: target.toString(), etag: response.headers.get('etag') ?? undefined };
+        const error = classifyStatus(response.status);
+        if (!error.retryable || attempt === 4) throw error;
+        await waitForRetry(response, attempt, input.signal);
+      } catch (error) {
+        if (input.signal?.aborted) throw error;
+        const classified = networkError(error);
+        if (!classified.retryable || attempt === 4) throw classified;
+        await waitForRetry(undefined, attempt, input.signal);
+      }
     }
     throw new SyncDestinationError('WebDAV upload failed', 'DESTINATION_PROTOCOL');
   }
